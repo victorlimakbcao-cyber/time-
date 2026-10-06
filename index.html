@@ -666,13 +666,14 @@ const SUPABASE_URL='https://tfhowvwycmdskunbasdj.supabase.co';
 const SUPABASE_KEY='sb_publishable_QObRfLJxDi9Kh8-nNLoJYA_pQ3feKBY';
 const sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
 const LEGACY_CACHE_KEY='cm_v2';
-let _cacheKey=LEGACY_CACHE_KEY,_authUser=null,_sbTimer=null,_sbBusy=false,_sbLoaded=false;
-let DB;try{DB=JSON.parse(localStorage.getItem(LEGACY_CACHE_KEY))}catch(e){}
+const _legacyRaw=localStorage.getItem(LEGACY_CACHE_KEY),_hadLegacy=!!_legacyRaw;
+let _cacheKey=LEGACY_CACHE_KEY,_authUser=null,_sbTimer=null,_sbBusy=false,_sbLoaded=false,_members=[];
+let DB;try{DB=_legacyRaw?JSON.parse(_legacyRaw):null}catch(e){}
 if(!DB||!DB.clubs)DB={cur:'c1',role:'Presidente',clubs:{c1:seed()}};
 let S=DB.clubs[DB.cur];
 function fill(){const d=seed();for(const k in d)if(S[k]===undefined)S[k]=d[k]}
 fill();
-const freshDB=()=>({cur:'c1',role:'Presidente',clubs:{c1:seed()}});
+const freshDB=()=>({cur:'c1',role:'Presidente',clubs:{c1:blank('Meu Clube')}});
 const setDB=x=>{DB=x&&x.clubs?x:freshDB();if(!DB.cur||!DB.clubs[DB.cur])DB.cur=Object.keys(DB.clubs)[0]||'c1';if(!DB.clubs[DB.cur])DB=freshDB();S=DB.clubs[DB.cur];fill()};
 function cmAuthMsg(msg,type=''){const e=$('#cmAuthMsg');if(!e)return;e.textContent=msg||'';e.className='cm-auth-msg '+type}
 function cmAuthBusy(on){['#cmAuthLogin','#cmAuthSignup'].forEach(s=>{const b=$(s);if(b)b.disabled=!!on})}
@@ -691,7 +692,7 @@ async function cmAuthSubmit(mode){
   const res=mode==='signup'?await sb.auth.signUp({email,password}):await sb.auth.signInWithPassword({email,password});
   if(res.error)throw res.error;
   if(mode==='signup'&&!res.data.session){cmAuthMsg('Conta criada. Confira seu e-mail para confirmar o cadastro e depois entre.','ok');return}
-  if(res.data.session){cmAuthShow(res.data.session);await loadSupabase();render()}
+  if(res.data.session){cmAuthShow(res.data.session);_sbLoaded=false;await loadSupabase();render()}
  }catch(e){cmAuthMsg(e&&e.message?e.message:'Não foi possível autenticar.','bad')}
  finally{cmAuthBusy(false)}
 }
@@ -700,12 +701,71 @@ async function cmSignOut(){
  try{await syncSupabase();await sb.auth.signOut()}finally{location.reload()}
 }
 const cmAccountHtml=()=>_authUser?`<div class="cm-account"><span class="cm-account-email" title="${esc(_authUser.email||'')}">${esc(_authUser.email||'Conta conectada')}</span><button class="btn ghost sm" style="width:100%;color:inherit;border-color:rgba(255,255,255,.35)" onclick="cmSignOut()">Sair da conta</button></div>`:'';
+const cmSettingsPayload=(clubId,state)=>({club_id:clubId,fee_value:+state.feeValue||0,fee_day:+state.feeDay||10,initial_balance:+state.initial||0,initial_account:state.initialAcc||null,rating_weights:state.weights||{coach:50,staff:30,players:20},min_rated:+state.minRated||3,lists:state.lists||{},extra:{hiddenRk:state.hiddenRk||[],rankOut:state.rankOut||[]}});
+async function cmBootstrapClub(localState){
+ const st=localState&&localState.club?localState:blank('Meu Clube'),cl=st.club||{};
+ const {data:club,error:clubErr}=await sb.from('cm_clubs').insert({name:cl.name||'Meu Clube',sigla:cl.sigla||'MC',brand_color:cl.color||'#1F6B4A',accent_color:cl.accent||'#E8B923',created_by:_authUser.id}).select('id').single();
+ if(clubErr)throw clubErr;
+ const clubId=club.id;
+ const {error:memErr}=await sb.from('cm_members').insert({club_id:clubId,user_id:_authUser.id,role:'Presidente',status:'active',display_name:_authUser.email||'Presidente'});
+ if(memErr)throw memErr;
+ const {error:stateErr}=await sb.from('cm_club_state').insert({club_id:clubId,data:st,updated_by:_authUser.id});
+ if(stateErr)throw stateErr;
+ await sb.from('cm_settings').upsert(cmSettingsPayload(clubId,st),{onConflict:'club_id'});
+ const roles=Object.entries(st.perms||{}).map(([role,permissions])=>({club_id:clubId,role,permissions}));
+ if(roles.length)await sb.from('cm_role_permissions').upsert(roles,{onConflict:'club_id,role'});
+ return{clubId,state:st};
+}
+async function cmBootstrapAccount(){
+ const source=_hadLegacy&&DB&&DB.clubs?DB:{cur:'c1',role:'Presidente',clubs:{c1:blank('Meu Clube')}};
+ const out={cur:'',role:'Presidente',clubs:{}};
+ for(const [localKey,state] of Object.entries(source.clubs)){
+  const b=await cmBootstrapClub(state);
+  out.clubs[b.clubId]=b.state;
+  if(localKey===source.cur)out.cur=b.clubId;
+ }
+ out.cur=out.cur||Object.keys(out.clubs)[0];
+ return out;
+}
+async function cmLoadRemoteDB(){
+ const {data:members,error:memErr}=await sb.from('cm_members').select('club_id,role,status').eq('user_id',_authUser.id).eq('status','active');
+ if(memErr)throw memErr;
+ _members=members||[];
+ if(!_members.length)return await cmBootstrapAccount();
+ const ids=_members.map(m=>m.club_id);
+ const [{data:clubs,error:clubErr},{data:states,error:stateErr}]=await Promise.all([
+  sb.from('cm_clubs').select('id,name,sigla,brand_color,accent_color,logo_path').in('id',ids).is('deleted_at',null),
+  sb.from('cm_club_state').select('club_id,data').in('club_id',ids)
+ ]);
+ if(clubErr)throw clubErr;if(stateErr)throw stateErr;
+ const byState=new Map((states||[]).map(x=>[x.club_id,x.data])),byClub=new Map((clubs||[]).map(x=>[x.id,x]));
+ const out={cur:'',role:'Presidente',clubs:{}};
+ for(const m of _members){
+  const cl=byClub.get(m.club_id);if(!cl)continue;
+  let st=byState.get(m.club_id);
+  if(!st||!st.club){
+   st=blank(cl.name||'Meu Clube');st.club={...st.club,name:cl.name||st.club.name,sigla:cl.sigla||st.club.sigla,color:cl.brand_color||st.club.color,accent:cl.accent_color||st.club.accent};
+   const {error}=await sb.from('cm_club_state').upsert({club_id:m.club_id,data:st,updated_by:_authUser.id},{onConflict:'club_id'});if(error)throw error;
+  }
+  out.clubs[m.club_id]=st;
+ }
+ out.cur=Object.keys(out.clubs)[0]||'';
+ const actual=_members.find(m=>m.club_id===out.cur);out.role=actual&&actual.role?actual.role:'Presidente';
+ return out;
+}
 async function syncSupabase(){
- if(!sb||_sbBusy||!_authUser)return false;
+ if(!sb||_sbBusy||!_authUser||!DB.cur||!DB.clubs[DB.cur])return false;
  _sbBusy=true;
  try{
-  const {error}=await sb.from('clube_manager_state').upsert({user_id:_authUser.id,data:DB,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+  const clubId=DB.cur,state=DB.clubs[clubId],cl=state.club||{};
+  const {error}=await sb.from('cm_club_state').upsert({club_id:clubId,data:state,updated_by:_authUser.id},{onConflict:'club_id'});
   if(error)throw error;
+  await Promise.all([
+   sb.from('cm_clubs').update({name:cl.name||'Meu Clube',sigla:cl.sigla||null,brand_color:cl.color||'#1F6B4A',accent_color:cl.accent||'#E8B923'}).eq('id',clubId),
+   sb.from('cm_settings').upsert(cmSettingsPayload(clubId,state),{onConflict:'club_id'})
+  ]);
+  const roles=Object.entries(state.perms||{}).map(([role,permissions])=>({club_id:clubId,role,permissions}));
+  if(roles.length)await sb.from('cm_role_permissions').upsert(roles,{onConflict:'club_id,role'});
   return true;
  }catch(e){console.warn('Supabase sync falhou:',e);return false}
  finally{_sbBusy=false}
@@ -716,29 +776,12 @@ async function loadSupabase(){
  if(!sb||!_authUser||_sbLoaded)return;
  _sbLoaded=true;
  try{
-  const userCache=localStorage.getItem(_cacheKey);
-  const {data,error}=await sb.from('clube_manager_state').select('data').eq('user_id',_authUser.id).maybeSingle();
-  if(error)throw error;
-  if(data&&data.data&&data.data.clubs){
-   setDB(data.data);
-   try{localStorage.setItem(_cacheKey,JSON.stringify(DB))}catch(e){}
-  }else if(userCache){
-   try{setDB(JSON.parse(userCache))}catch(e){setDB(freshDB())}
-   await syncSupabase();
-  }else{
-   const migratedTo=localStorage.getItem('cm_v2:migrated_to');
-   const legacy=!migratedTo?localStorage.getItem(LEGACY_CACHE_KEY):null;
-   if(legacy){
-    try{setDB(JSON.parse(legacy))}catch(e){setDB(freshDB())}
-   }else setDB(freshDB());
-   const ok=await syncSupabase();
-   try{
-    localStorage.setItem(_cacheKey,JSON.stringify(DB));
-    if(ok&&legacy){localStorage.setItem('cm_v2:migrated_to',_authUser.id);localStorage.removeItem(LEGACY_CACHE_KEY)}
-   }catch(e){}
-  }
+  await sb.from('cm_profiles').upsert({user_id:_authUser.id,full_name:_authUser.email?String(_authUser.email).split('@')[0]:null},{onConflict:'user_id'});
+  const remote=await cmLoadRemoteDB();
+  setDB(remote);
+  try{localStorage.setItem(_cacheKey,JSON.stringify(DB));if(_hadLegacy)localStorage.setItem('cm_v2:migrated_to',_authUser.id)}catch(e){}
   render();
- }catch(e){console.warn('Supabase load falhou:',e);cmAuthMsg('Falha ao carregar seus dados. Verifique a conexão e tente novamente.','bad');_sbLoaded=false}
+ }catch(e){console.warn('Supabase load falhou:',e);cmAuthMsg('Falha ao carregar o backend do clube. Atualize a página e tente novamente.','bad');_sbLoaded=false}
 }
 async function cmAuthInit(){
  if(!sb){cmAuthMsg('Biblioteca do Supabase não carregou. Atualize a página.','bad');return}
@@ -751,6 +794,7 @@ if(sb){
  sb.auth.onAuthStateChange((event,session)=>{setTimeout(async()=>{_sbLoaded=false;cmAuthShow(session);if(session)await loadSupabase()},0)});
  cmAuthInit();
 }
+
 /* Migração segura Posição <- Status. Só age em jogador cujo status NÃO é um status de disponibilidade conhecido
    e que parece o nome de uma posição. Copia o valor para `pos` (sem sobrescrever pos já válida), reaproveita o valor
    existente em S.lists.pos (ignora acento/caixa/gênero: direita=direito) ou o acrescenta a essa mesma lista,
@@ -774,7 +818,7 @@ Object.values(DB.clubs).forEach(c=>fixPos(c));
 {let ch=false;Object.values(DB.clubs).forEach(c=>Object.values(c.perms||{}).forEach(r=>{if(r&&r.campanha===undefined){r.campanha=!!r.estatisticas;ch=true}}));if(ch)save()}
 const can=k=>k==='menu'||(DB.role==='Presidente'&&k==='config')||!!(S.perms[DB.role]&&S.perms[DB.role][k]);
 function blank(name){const d=seed();return{...d,club:{...d.club,name,sigla:name.slice(0,2).toUpperCase()},players:[],matches:[],events:[],tx:[],fees:{[TODAY.slice(0,7)]:{}},comps:[],sponsors:[],contracts:[],docs:[],staff:[]}}
-function switchClub(id){if(id==='__new'){modal('Novo clube',[{k:'name',l:'Nome do clube'}],v=>{if(!v.name)return'Informe o nome.';const k='c'+nid();DB.clubs[k]=blank(v.name);DB.cur=k;S=DB.clubs[k];save();go('dashboard')});render();return}
+function switchClub(id){if(id==='__new'){modal('Novo clube',[{k:'name',l:'Nome do clube'}],v=>{if(!v.name)return'Informe o nome.';(async()=>{try{const b=await cmBootstrapClub(blank(v.name));DB.clubs[b.clubId]=b.state;DB.cur=b.clubId;S=DB.clubs[b.clubId];fill();fixPos();save();go('dashboard');toast('Clube criado e conectado ao backend.')}catch(e){console.error(e);note('Não consegui criar o clube no backend. Tente novamente.')}})()});render();return}
  DB.cur=id;S=DB.clubs[id];fill();fixPos();save();go('dashboard')}
 function seedExtra(){
  const A=['dashboard','partidas','competicoes','elenco','campanha','estatisticas','ranking','calendario','financeiro','patrocinadores','contratos','documentos','config'];
