@@ -89,6 +89,21 @@ A aplicação mantém cache local por usuário para resiliência, mas o estado o
 
 As tabelas normalizadas estão preparadas para substituir gradualmente o snapshot sem quebrar a aplicação existente.
 
+## Preparação de integração Supabase
+
+Os arquivos abaixo pertencem ao ciclo de preparação segura e revisão antes de qualquer alteração no banco real:
+
+- `supabase/diagnostics/inspect_cm_schema.sql` — inventário somente leitura das tabelas `cm_*` e funções no schema `private`.
+- `supabase/migrations/20261006000000_role_permissions_by_action.sql` — proposta de migração para permissões por ação, ainda sem execução.
+
+Fluxo recomendado:
+
+1. Executar a inspeção no SQL Editor do Supabase.
+2. Validar nomes reais de tabelas, colunas, policies e triggers.
+3. Ajustar a migração conforme o schema observado.
+4. Aplicar somente após revisão final.
+5. Migrar o frontend legado para o fluxo por ação de forma incremental.
+
 ## Deploy
 
 - Entrada: `index.html`
