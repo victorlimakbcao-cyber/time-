@@ -562,6 +562,7 @@ img.sh.shk{opacity:1}
 <nav class="bottom" id="bottom" aria-label="Navegação principal"></nav>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <dialog id="dlg"></dialog>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const ICONS={dashboard:'<path d="M3 3h8v10H3zM13 3h8v6h-8zM13 11h8v10h-8zM3 15h8v6H3z"/>',partidas:'<circle cx="12" cy="12" r="9"/><path d="M12 7l4 3-1.5 5h-5L8 10z"/>',competicoes:'<path d="M7 4h10v5a5 5 0 01-10 0zM5 5H3v2a3 3 0 003 3M19 5h2v2a3 3 0 01-3 3M12 14v4M8 21h8"/>',elenco:'<circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-4 3-6 7-6s7 2 7 6M17 5a3 3 0 010 6M22 20c0-3-2-5-4-5.5"/>',campanha:'<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',estatisticas:'<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>',ranking:'<circle cx="12" cy="9" r="5"/><path d="M8.5 13.5L7 21l5-3 5 3-1.5-7.5"/>',calendario:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',financeiro:'<circle cx="12" cy="12" r="9"/><path d="M14.5 9c-.6-1-1.700-1.500-2.700-1.300-1.400.3-2 1.800-.8 2.700 1 .7 2.500.8 3.200 1.800.8 1.300-.3 2.700-1.800 2.800-1.100.1-2.200-.4-2.800-1.400M12 6v2M12 16v2"/>',patrocinadores:'<path d="M3 9l9-5 9 5-9 5zM6 12v5l6 3 6-3v-5"/>',contratos:'<path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h7"/>',documentos:'<path d="M3 6a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>',config:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>',mais:'<circle cx="5" cy="12" r="1.500"/><circle cx="12" cy="12" r="1.500"/><circle cx="19" cy="12" r="1.500"/>'};
 const NAV=[['dashboard','Dashboard'],['partidas','Partidas'],['elenco','Elenco'],['campanha','Campanha'],['estatisticas','Estatísticas'],['ranking','Ranking Geral'],['calendario','Calendário'],['competicoes','Competições'],['financeiro','Financeiro'],['patrocinadores','Patrocinadores'],['contratos','Contratos'],['documentos','Documentos'],['config','Configurações']];
@@ -630,12 +631,49 @@ function seed(){
  for(const mo in F)for(const pid in F[mo])if(F[mo][pid]==='pago')t('Mensalidade '+mo,'Mensalidade','in',50,mo+'-10','pago',{fee:mo,pid:+pid});
  return{club:{name:'Clube Manager',sigla:'CM',color:'#1F6B4A',accent:'#E8B923'},players:pl,matches:M,events:E,tx:T,fees:F,feeValue:50,initial:1500,weights:{coach:50,staff:30,players:20},txArchive:[],feeOut:[],feeDay:10,initialAcc:'Conta Pix',...seedExtra()};
 }
+const SUPABASE_URL='https://tfhowvwycmdskunbasdj.supabase.co';
+const SUPABASE_KEY='sb_publishable_QObRfLJxDi9Kh8-nNLoJYA_pQ3feKBY';
+const sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
 let DB;try{DB=JSON.parse(localStorage.getItem('cm_v2'))}catch(e){}
 if(!DB||!DB.clubs)DB={cur:'c1',role:'Presidente',clubs:{c1:seed()}};
 let S=DB.clubs[DB.cur];
 function fill(){const d=seed();for(const k in d)if(S[k]===undefined)S[k]=d[k]}
 fill();
-const save=()=>{try{localStorage.setItem('cm_v2',JSON.stringify(DB));return true}catch(e){return false}};
+let _sbTimer=null,_sbBusy=false;
+async function syncSupabase(){
+ if(!sb||_sbBusy)return false;
+ const {data:{session}}=await sb.auth.getSession();
+ if(!session)return false;
+ _sbBusy=true;
+ try{
+  const {error}=await sb.from('clube_manager_state').upsert({user_id:session.user.id,data:DB,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+  if(error)throw error;
+  return true;
+ }catch(e){console.warn('Supabase sync falhou:',e);return false}
+ finally{_sbBusy=false}
+}
+function queueSupabase(){clearTimeout(_sbTimer);_sbTimer=setTimeout(syncSupabase,500)}
+const save=()=>{try{localStorage.setItem('cm_v2',JSON.stringify(DB));queueSupabase();return true}catch(e){return false}};
+async function loadSupabase(){
+ if(!sb)return;
+ try{
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session)return;
+  const {data,error}=await sb.from('clube_manager_state').select('data').eq('user_id',session.user.id).maybeSingle();
+  if(error)throw error;
+  if(data&&data.data&&data.data.clubs){
+   DB=data.data;S=DB.clubs[DB.cur]||DB.clubs[Object.keys(DB.clubs)[0]];fill();
+   try{localStorage.setItem('cm_v2',JSON.stringify(DB))}catch(e){}
+   render();
+  }else{
+   await syncSupabase();
+  }
+ }catch(e){console.warn('Supabase load falhou:',e)}
+}
+if(sb){
+ sb.auth.onAuthStateChange((event,session)=>{if(session)loadSupabase()});
+ loadSupabase();
+}
 /* Migração segura Posição <- Status. Só age em jogador cujo status NÃO é um status de disponibilidade conhecido
    e que parece o nome de uma posição. Copia o valor para `pos` (sem sobrescrever pos já válida), reaproveita o valor
    existente em S.lists.pos (ignora acento/caixa/gênero: direita=direito) ou o acrescenta a essa mesma lista,
