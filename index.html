@@ -818,7 +818,7 @@ Object.values(DB.clubs).forEach(c=>fixPos(c));
 {let ch=false;Object.values(DB.clubs).forEach(c=>Object.values(c.perms||{}).forEach(r=>{if(r&&r.campanha===undefined){r.campanha=!!r.estatisticas;ch=true}}));if(ch)save()}
 const can=k=>k==='menu'||(DB.role==='Presidente'&&k==='config')||!!(S.perms[DB.role]&&S.perms[DB.role][k]);
 function blank(name){const d=seed();return{...d,club:{...d.club,name,sigla:name.slice(0,2).toUpperCase()},players:[],matches:[],events:[],tx:[],fees:{[TODAY.slice(0,7)]:{}},comps:[],sponsors:[],contracts:[],docs:[],staff:[]}}
-function switchClub(id){if(id==='__new'){modal('Novo clube',[{k:'name',l:'Nome do clube'}],v=>{if(!v.name)return'Informe o nome.';const k='c'+nid();DB.clubs[k]=blank(v.name);DB.cur=k;S=DB.clubs[k];save();go('dashboard')});render();return}
+function switchClub(id){if(id==='__new'){modal('Novo clube',[{k:'name',l:'Nome do clube'}],v=>{if(!v.name)return'Informe o nome.';(async()=>{try{const b=await cmBootstrapClub(blank(v.name));DB.clubs[b.clubId]=b.state;DB.cur=b.clubId;S=DB.clubs[b.clubId];fill();fixPos();save();go('dashboard');toast('Clube criado e conectado ao backend.')}catch(e){console.error(e);note('Não consegui criar o clube no backend. Tente novamente.')}})()});render();return}
  DB.cur=id;S=DB.clubs[id];fill();fixPos();save();go('dashboard')}
 function seedExtra(){
  const A=['dashboard','partidas','competicoes','elenco','campanha','estatisticas','ranking','calendario','financeiro','patrocinadores','contratos','documentos','config'];
