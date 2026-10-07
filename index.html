@@ -797,14 +797,16 @@ async function cmLoadOwnAccessRequest(){
  if(error)throw error;_accessRequest=data||null;return _accessRequest
 }
 async function cmLoadAccessRequests(){
- if(!sb||!isActualAdmin()){_accessRequests=[];return[]}
+ const anyAdmin=_members.some(m=>m.status==='active'&&(m.role==='Presidente'||m.role==='Vice-presidente'));
+ if(!sb||!anyAdmin){_accessRequests=[];return[]}
  const {data,error}=await sb.from('cm_access_requests').select('id,user_id,email,full_name,status,requested_at,reviewed_at,assigned_club_id,assigned_role,note').eq('status','pending').order('requested_at',{ascending:true});
  if(error)throw error;_accessRequests=data||[];return _accessRequests
 }
 async function cmApproveAccess(id){
  if(!isActualAdmin())return note('Somente Presidente ou Vice-presidente podem aprovar acessos.');
  const r=_accessRequests.find(x=>x.id===id);if(!r)return;
- const roles=Object.keys(S.perms||{}),clubs=Object.entries(DB.clubs).map(([id,st])=>[id,st.club.name+(st.club.demo?' · Demonstração':'')]);
+ const roles=Object.keys(S.perms||{}),adminClubIds=new Set(_members.filter(m=>m.status==='active'&&(m.role==='Presidente'||m.role==='Vice-presidente')).map(m=>m.club_id)),clubs=Object.entries(DB.clubs).filter(([id])=>adminClubIds.has(id)).map(([id,st])=>[id,st.club.name+(st.club.demo?' · Demonstração':'')]);
+ if(!clubs.length)return note('Você não possui um clube administrável para vincular este usuário.');
  modal('Aprovar usuário',[
    {k:'club',l:'Clube',t:'sel',o:clubs,v:DB.cur},
    {k:'role',l:'Função',t:'sel',o:roles,v:'Jogador'}
@@ -833,7 +835,7 @@ async function cmRejectAccess(id){
   }catch(e){console.error(e);note('Não consegui recusar este pedido.')}})()},'Recusar','RECUSAR ACESSO')
 }
 function accessRequestsPanel(){
- if(!isActualAdmin())return'';
+ const anyAdmin=_members.some(m=>m.status==='active'&&(m.role==='Presidente'||m.role==='Vice-presidente'));if(!anyAdmin)return'';
  const rows=_accessRequests.map(r=>`<tr><td><b>${esc(r.full_name||'Sem nome')}</b><div class="mute" style="font-size:12px">${esc(r.email)}</div></td><td>${new Date(r.requested_at).toLocaleString('pt-BR')}</td><td><div class="cm-pending-actions"><button class="btn sm" onclick="cmApproveAccess('${r.id}')">Aprovar</button><button class="btn ghost sm" onclick="cmRejectAccess('${r.id}')">Recusar</button></div></td></tr>`).join('');
  return `<div class="card cm-pending" style="margin-top:12px"><div class="row"><div><h3 style="margin:0">Usuários pendentes</h3><p class="mute" style="margin:4px 0 0">Apenas usuários aprovados podem acessar o sistema.</p></div><span class="sp"></span>${_accessRequests.length?`<span class="cm-request-badge">${_accessRequests.length}</span>`:''}</div>${rows?`<div class="wrap" style="margin-top:10px"><table class="tbl"><tr><th>Usuário</th><th>Solicitado em</th><th>Ações</th></tr>${rows}</table></div>`:'<div class="empty">Nenhum usuário aguardando aprovação.</div>'}</div>`
 }
@@ -979,7 +981,7 @@ async function loadSupabase(){
   const remote=await cmLoadRemoteDB();
   if(!remote){cmShowAccessGate(_accessRequest);return}
   cmHideAccessGate();setDB(remote);Object.values(DB.clubs).forEach(cl=>normalizePerms(cl));await cmEnsureDemoClub();if(!DB.cur||!DB.clubs[DB.cur])DB.cur=Object.keys(DB.clubs)[0];S=DB.clubs[DB.cur];await cmLoadClubMembers(DB.cur);
-  if(isActualAdmin())await cmLoadAccessRequests();
+  await cmLoadAccessRequests();
   try{localStorage.setItem(_cacheKey,JSON.stringify(DB));if(_hadLegacy)localStorage.setItem('cm_v2:migrated_to',_authUser.id)}catch(e){}
   render();
  }catch(e){console.warn('Supabase load falhou:',e);cmAuthMsg('Falha ao carregar o backend do clube. Atualize a página e tente novamente.','bad');_sbLoaded=false}
