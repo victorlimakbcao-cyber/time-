@@ -417,7 +417,7 @@ button,summary,a{touch-action:manipulation}
 .prm-note{font-size:12px;color:var(--mute)}
 .ro-locked{opacity:.45!important;cursor:not-allowed!important;filter:grayscale(.2)}
 .ro-mode{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-@media(max-width:640px){.prm-head{align-items:stretch}.prm-head>div,.prm-head select{width:100%}.prm-actions .btn{width:100%}}
+@media(max-width:640px){.prm-head{align-items:stretch}.prm-head>div,.prm-head select{width:100%}.prm-head>div[style*="grid-template-columns"]{grid-template-columns:1fr!important;min-width:0!important}.prm-actions .btn{width:100%}}
 
 /* --- Modais: título e ações sempre visíveis; bottom sheet no celular --- */
 dialog{--dp:clamp(14px,3.4vw,20px);padding:0 var(--dp);max-height:min(calc(100dvh - 24px),calc(var(--vvh,100dvh) - 24px))}
@@ -683,7 +683,7 @@ const SUPABASE_KEY='sb_publishable_QObRfLJxDi9Kh8-nNLoJYA_pQ3feKBY';
 const sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
 const LEGACY_CACHE_KEY='cm_v2';
 const _legacyRaw=localStorage.getItem(LEGACY_CACHE_KEY),_hadLegacy=!!_legacyRaw;
-let _cacheKey=LEGACY_CACHE_KEY,_authUser=null,_sbTimer=null,_sbBusy=false,_sbLoaded=false,_members=[],_actualRole='Presidente',_permRole='Staff';
+let _cacheKey=LEGACY_CACHE_KEY,_authUser=null,_sbTimer=null,_sbBusy=false,_sbLoaded=false,_members=[],_clubMembers=[],_actualRole='Presidente',_permRole='Staff',_permMode='role',_permUser='',_userRoleDraft='',_userPermDraft=null,_userPermDirty=false;
 let DB;try{DB=_legacyRaw?JSON.parse(_legacyRaw):null}catch(e){}
 if(!DB||!DB.clubs)DB={cur:'c1',role:'Presidente',clubs:{c1:seed()}};
 let S=DB.clubs[DB.cur];
@@ -744,7 +744,7 @@ async function cmBootstrapAccount(){
  return out;
 }
 async function cmLoadRemoteDB(){
- const {data:members,error:memErr}=await sb.from('cm_members').select('club_id,role,status').eq('user_id',_authUser.id).eq('status','active');
+ const {data:members,error:memErr}=await sb.from('cm_members').select('id,club_id,user_id,role,status,display_name,permissions').eq('user_id',_authUser.id).eq('status','active');
  if(memErr)throw memErr;
  _members=members||[];
  if(!_members.length){_actualRole='Presidente';return await cmBootstrapAccount();}
@@ -769,6 +769,25 @@ async function cmLoadRemoteDB(){
  const actual=_members.find(m=>m.club_id===out.cur);_actualRole=actual&&actual.role?actual.role:'Presidente';out.role=_actualRole;
  return out;
 }
+async function cmLoadClubMembers(clubId=DB.cur){
+ if(!sb||!_authUser||!clubId){_clubMembers=[];return[]}
+ try{
+  const {data,error}=await sb.from('cm_members')
+    .select('id,club_id,user_id,role,status,display_name,permissions')
+    .eq('club_id',clubId).eq('status','active')
+    .order('display_name',{ascending:true});
+  if(error)throw error;
+  _clubMembers=data||[];
+  if(_permUser&&!_clubMembers.some(m=>m.user_id===_permUser))_permUser='';
+  return _clubMembers
+ }catch(e){console.warn('Falha ao carregar usuários do clube:',e);_clubMembers=[];return[]}
+}
+const currentMember=()=>_members.find(m=>m.club_id===DB.cur&&m.user_id===(_authUser&&_authUser.id));
+const userOverride=(k,a)=>{
+ const m=currentMember();if(!m||DB.role!==_actualRole)return undefined;
+ const mod=m.permissions&&m.permissions[k];
+ return mod&&typeof mod==='object'&&Object.prototype.hasOwnProperty.call(mod,a)?!!mod[a]:undefined
+};
 async function syncSupabase(){
  if(!sb||_sbBusy||!_authUser||!DB.cur||!DB.clubs[DB.cur])return false;
  _sbBusy=true;
@@ -794,7 +813,7 @@ async function loadSupabase(){
  try{
   await sb.from('cm_profiles').upsert({user_id:_authUser.id,full_name:_authUser.email?String(_authUser.email).split('@')[0]:null},{onConflict:'user_id'});
   const remote=await cmLoadRemoteDB();
-  setDB(remote);Object.values(DB.clubs).forEach(cl=>normalizePerms(cl));
+  setDB(remote);Object.values(DB.clubs).forEach(cl=>normalizePerms(cl));await cmLoadClubMembers(DB.cur);
   try{localStorage.setItem(_cacheKey,JSON.stringify(DB));if(_hadLegacy)localStorage.setItem('cm_v2:migrated_to',_authUser.id)}catch(e){}
   render();
  }catch(e){console.warn('Supabase load falhou:',e);cmAuthMsg('Falha ao carregar o backend do clube. Atualize a página e tente novamente.','bad');_sbLoaded=false}
@@ -854,13 +873,17 @@ function normalizePerms(C,forceDefault=false){
 const canDo=(k,a='view',role=DB.role)=>{
  if(k==='menu')return a==='view';
  if(ADMIN_ROLES.includes(role))return true;
+ if(role===_actualRole){
+  const ov=userOverride(k,a);
+  if(ov!==undefined)return ov
+ }
  const p=S.perms&&S.perms[role]&&S.perms[role][k];
  return !!(p&&typeof p==='object'&&p[a])
 };
 const can=k=>canDo(k,'view');
 function blank(name){const d=seed();return{...d,club:{...d.club,name,sigla:name.slice(0,2).toUpperCase()},players:[],matches:[],events:[],tx:[],fees:{[TODAY.slice(0,7)]:{}},comps:[],sponsors:[],contracts:[],docs:[],staff:[]}}
 function switchClub(id){if(id==='__new'){if(!isActualAdmin())return note('Somente Presidente ou Vice-presidente podem criar um novo clube.');modal('Novo clube',[{k:'name',l:'Nome do clube'}],v=>{if(!v.name)return'Informe o nome.';(async()=>{try{const b=await cmBootstrapClub(blank(v.name));DB.clubs[b.clubId]=b.state;DB.cur=b.clubId;S=DB.clubs[b.clubId];_actualRole='Presidente';DB.role='Presidente';normalizePerms(S);fill();fixPos();save();go('dashboard');toast('Clube criado e conectado ao backend.')}catch(e){console.error(e);note('Não consegui criar o clube no backend. Tente novamente.')}})()});render();return}
- DB.cur=id;S=DB.clubs[id];normalizePerms(S);fill();fixPos();const m=_members.find(x=>x.club_id===id);_actualRole=m&&m.role?m.role:'Presidente';DB.role=_actualRole;save();go('dashboard')}
+ DB.cur=id;S=DB.clubs[id];normalizePerms(S);fill();fixPos();const m=_members.find(x=>x.club_id===id);_actualRole=m&&m.role?m.role:'Presidente';DB.role=_actualRole;_permUser='';_userPermDraft=null;_userPermDirty=false;save();cmLoadClubMembers(id).then(()=>render());go('dashboard')}
 function seedExtra(){
  const A=['dashboard','partidas','competicoes','elenco','campanha','estatisticas','ranking','calendario','financeiro','patrocinadores','contratos','documentos','config'];
  const fp=()=>({view:true,create:true,edit:true,delete:true}),vp=k=>({view:k!=='config',create:false,edit:false,delete:false});
@@ -1201,14 +1224,70 @@ function permResetRole(r){
  NAV.forEach(([k])=>S.perms[r][k]=viewPerm(k!=='config'));
  save();render();toast(r+' voltou ao padrão somente visualização.')
 }
+const clonePerm=x=>JSON.parse(JSON.stringify(x||{}));
+function effectiveUserMatrix(member,role){
+ const base=S.perms[role]||{};const over=member&&member.permissions||{};
+ return Object.fromEntries(NAV.map(([k])=>[k,Object.fromEntries(PERM_ACTIONS.map(a=>{
+  const u=over[k]&&typeof over[k]==='object'&&Object.prototype.hasOwnProperty.call(over[k],a)?!!over[k][a]:undefined;
+  return[a,u===undefined?!!(base[k]&&base[k][a]):u]
+ }))]))
+}
+function selectPermUser(uid){
+ _permUser=uid;const m=_clubMembers.find(x=>x.user_id===uid);
+ _userRoleDraft=m?m.role:'';_userPermDraft=m?effectiveUserMatrix(m,m.role):null;_userPermDirty=false;render()
+}
+function userPermSet(k,a,v){
+ if(!_userPermDraft)return;const p=_userPermDraft[k]||(_userPermDraft[k]=viewPerm(k!=='config'));
+ if(a==='view'&&!v){p.view=false;p.create=false;p.edit=false;p.delete=false}
+ else{p[a]=!!v;if(a!=='view'&&v)p.view=true}
+ _userPermDirty=true;render()
+}
+function userRoleSet(role){
+ const m=_clubMembers.find(x=>x.user_id===_permUser);if(!m)return;
+ _userRoleDraft=role;_userPermDraft=effectiveUserMatrix({...m,permissions:{}},role);_userPermDirty=true;render()
+}
+function compactUserOverrides(role,matrix){
+ const base=S.perms[role]||{},out={};
+ NAV.forEach(([k])=>{const d={};PERM_ACTIONS.forEach(a=>{const v=!!(matrix[k]&&matrix[k][a]),b=!!(base[k]&&base[k][a]);if(v!==b)d[a]=v});if(Object.keys(d).length)out[k]=d});
+ return out
+}
+async function saveUserPermissions(){
+ if(!isActualAdmin()||!_permUser||!_userPermDraft||!_userRoleDraft)return;
+ const m=_clubMembers.find(x=>x.user_id===_permUser);if(!m)return;
+ if(m.user_id===(_authUser&&_authUser.id)&&!ADMIN_ROLES.includes(_userRoleDraft))return note('Para evitar perder o acesso administrativo, você não pode retirar sua própria função de Presidente/Vice-presidente.');
+ const permissions=ADMIN_ROLES.includes(_userRoleDraft)?{}:compactUserOverrides(_userRoleDraft,_userPermDraft);
+ try{
+  const {data,error}=await sb.from('cm_members').update({role:_userRoleDraft,permissions}).eq('id',m.id).eq('club_id',DB.cur).select('id,user_id,role,status,display_name,permissions').single();
+  if(error)throw error;
+  const ix=_clubMembers.findIndex(x=>x.id===m.id);if(ix>=0)_clubMembers[ix]=data;
+  const own=_members.findIndex(x=>x.id===m.id);if(own>=0){_members[own]=data;_actualRole=data.role;DB.role=data.role}
+  _userPermDraft=effectiveUserMatrix(data,data.role);_userPermDirty=false;render();toast('Função e permissões do usuário foram salvas.')
+ }catch(e){console.error(e);note('Não consegui salvar as permissões deste usuário. Tente novamente.')}
+}
+function resetUserPermissions(){
+ const m=_clubMembers.find(x=>x.user_id===_permUser);if(!m)return;
+ _userRoleDraft=m.role;_userPermDraft=effectiveUserMatrix({...m,permissions:{}},m.role);_userPermDirty=true;render()
+}
 function permPanel(){
- normalizePerms(S);const roles=Object.keys(S.perms);if(!roles.includes(_permRole)||ADMIN_ROLES.includes(_permRole))_permRole=roles.find(r=>!ADMIN_ROLES.includes(r))||roles[0];
+ normalizePerms(S);const roles=Object.keys(S.perms);
+ if(!roles.includes(_permRole)||ADMIN_ROLES.includes(_permRole))_permRole=roles.find(r=>!ADMIN_ROLES.includes(r))||roles[0];
+ if(_permMode==='user'){
+  const m=_clubMembers.find(x=>x.user_id===_permUser)||null;
+  if(m&&!_userPermDraft){_userRoleDraft=m.role;_userPermDraft=effectiveUserMatrix(m,m.role)}
+  const adminUser=m&&ADMIN_ROLES.includes(_userRoleDraft);
+  const M=_userPermDraft||{};
+  const cells=(k)=>PERM_ACTIONS.map(a=>`<td><input type="checkbox" aria-label="${permName[a]} em ${k}" ${adminUser||M[k]&&M[k][a]?'checked':''} ${!m||adminUser?'disabled':''} onchange="userPermSet('${k}','${a}',this.checked)"></td>`).join('');
+  return `<div class="card" style="margin-top:12px"><div class="prm-head"><div><h3 style="margin-bottom:4px">Permissões por usuário</h3><p class="mute" style="margin:0">Selecione um usuário, defina sua função e personalize o que ele pode visualizar, criar, editar ou excluir.</p></div><div style="display:grid;grid-template-columns:minmax(180px,1fr) minmax(160px,1fr);gap:8px;min-width:min(480px,100%)"><div><label>Configurar</label><select onchange="_permMode=this.value;render()"><option value="role">Por função</option><option value="user" selected>Por usuário</option></select></div><div><label>Usuário</label><select onchange="selectPermUser(this.value)"><option value="">Selecione um usuário</option>${_clubMembers.map(u=>`<option value="${u.user_id}" ${u.user_id===_permUser?'selected':''}>${esc(u.display_name||('Usuário '+u.user_id.slice(0,8)))} · ${esc(u.role)}</option>`).join('')}</select></div></div></div>
+   ${m?`<div class="row" style="margin-bottom:10px"><div style="min-width:220px"><label>Função do usuário</label><select onchange="userRoleSet(this.value)" ${m.user_id===(_authUser&&_authUser.id)?'title="Sua própria função administrativa é protegida"':''}>${roles.map(r=>`<option ${r===_userRoleDraft?'selected':''}>${esc(r)}</option>`).join('')}</select></div><span class="prm-badge ${adminUser?'full':''}">${adminUser?'Acesso total pela função':'Permissões individuais'}</span></div>
+   <div class="prm-grid"><table class="tbl rt-keep"><tr><th>Módulo</th>${PERM_ACTIONS.map(a=>`<th>${permName[a]}</th>`).join('')}</tr>${NAV.map(([k,l])=>`<tr><td><b>${l}</b></td>${cells(k)}</tr>`).join('')}</table></div>
+   <div class="prm-actions"><span class="prm-note">Permissões individuais substituem o padrão da função somente para este usuário.</span><div class="row"><button class="btn ghost sm" onclick="resetUserPermissions()" ${adminUser?'disabled':''}>Usar padrão da função</button><button class="btn sm" onclick="saveUserPermissions()" ${!_userPermDirty?'disabled':''}>Salvar usuário</button></div></div>`:'<div class="empty">Selecione um usuário do clube para configurar a função e as permissões individuais.</div>'}</div>`
+ }
  const admin=ADMIN_ROLES.includes(_permRole),P=S.perms[_permRole]||{};
  const cells=(k)=>PERM_ACTIONS.map(a=>`<td><input type="checkbox" aria-label="${permName[a]} em ${k}" ${admin||P[k]&&P[k][a]?'checked':''} ${admin?'disabled':''} onchange="permSet('${esc(_permRole)}','${k}','${a}',this.checked)"></td>`).join('');
- return `<div class="card" style="margin-top:12px"><div class="prm-head"><div><h3 style="margin-bottom:4px">Permissões por função</h3><p class="mute" style="margin:0">Presidente e Vice-presidente têm acesso total. As demais funções começam em somente visualização e podem ser personalizadas a qualquer momento.</p></div><div><label>Função</label><select onchange="_permRole=this.value;render()">${roles.map(r=>`<option ${r===_permRole?'selected':''}>${esc(r)}</option>`).join('')}</select></div></div>
+ return `<div class="card" style="margin-top:12px"><div class="prm-head"><div><h3 style="margin-bottom:4px">Permissões por função</h3><p class="mute" style="margin:0">Presidente e Vice-presidente têm acesso total. As demais funções começam em somente visualização e podem ser personalizadas a qualquer momento.</p></div><div style="display:grid;grid-template-columns:minmax(160px,1fr) minmax(180px,1fr);gap:8px;min-width:min(420px,100%)"><div><label>Configurar</label><select onchange="_permMode=this.value;render()"><option value="role" selected>Por função</option><option value="user">Por usuário</option></select></div><div><label>Função</label><select onchange="_permRole=this.value;render()">${roles.map(r=>`<option ${r===_permRole?'selected':''}>${esc(r)}</option>`).join('')}</select></div></div></div>
  <div class="row" style="margin-bottom:10px"><span class="prm-badge ${admin?'full':''}">${admin?'Acesso total fixo':'Permissões personalizadas'}</span>${!admin?'<span class="prm-note">Desmarcar “Visualizar” remove também Criar, Editar e Excluir daquele módulo.</span>':''}</div>
  <div class="prm-grid"><table class="tbl rt-keep"><tr><th>Módulo</th>${PERM_ACTIONS.map(a=>`<th>${permName[a]}</th>`).join('')}</tr>${NAV.map(([k,l])=>`<tr><td><b>${l}</b></td>${cells(k)}</tr>`).join('')}</table></div>
- <div class="prm-actions"><span class="prm-note">Use “Ver como” no menu para testar exatamente como cada função verá o sistema.</span>${!admin?`<button class="btn ghost sm" onclick="permResetRole('${esc(_permRole)}')">Restaurar somente visualização</button>`:''}</div></div>`
+ <div class="prm-actions"><span class="prm-note">Use “Por usuário” para definir uma função e exceções específicas para cada conta.</span>${!admin?`<button class="btn ghost sm" onclick="permResetRole('${esc(_permRole)}')">Restaurar somente visualização</button>`:''}</div></div>`
 }
 function permissionActionFor(el){
  if(!el)return'';const h=[el.getAttribute('onclick'),el.getAttribute('onchange'),el.getAttribute('oninput')].filter(Boolean).join(' '),t=(el.textContent||el.value||'').trim().toLowerCase();
