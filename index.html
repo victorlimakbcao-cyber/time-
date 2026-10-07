@@ -603,9 +603,21 @@ img.sh.shk{opacity:1}
 .cm-access-card h2{margin:0 0 8px}.cm-access-card p{color:#5e7267;line-height:1.5}.cm-access-card .row{justify-content:center;margin-top:16px}
 .cm-pending{margin-top:12px}.cm-pending .tbl td,.cm-pending .tbl th{vertical-align:middle}.cm-pending-actions{display:flex;gap:6px;flex-wrap:wrap}
 .cm-request-badge{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--neg);color:#fff;font-size:11px;font-weight:800}
-.cm-users-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.cm-users-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.cm-users-tools input{min-width:220px;max-width:320px}.cm-user-row-actions{display:flex;gap:6px;flex-wrap:wrap}.cm-user-card-list{display:none}.cm-user-mini{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}.cm-user-mini:last-child{border-bottom:0}.cm-user-mini .cm-user-copy{color:var(--ink)}
+.cm-users-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.cm-users-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.cm-users-tools input{min-width:220px;max-width:320px}.cm-user-row-actions{display:flex;gap:6px;flex-wrap:wrap}.cm-user-card-list{display:none}.cm-user-mini{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 10px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}.cm-user-mini:last-child{border-bottom:0}.cm-user-mini .cm-user-copy{color:var(--ink)}.cm-user-mini .btn{grid-column:2;width:100%;margin-top:2px}
 @media(max-width:640px){.cm-users-table{display:none}.cm-user-card-list{display:block}.cm-users-tools,.cm-users-tools input{width:100%;max-width:none}}
-@media(max-width:520px){.cm-auth-actions,.cm-auth-name-row{grid-template-columns:1fr}.cm-account{margin-top:14px}.cm-user-menu>summary{background:rgba(255,255,255,.1)}}
+@media(max-width:520px){
+  #cmAuthGate{align-items:flex-start;overflow:auto;padding:14px 10px 28px}
+  .cm-auth-card{width:100%;max-width:430px;margin:0 auto;padding:18px 16px;border-radius:16px;min-height:auto}
+  .cm-auth-brand{margin-bottom:12px}.cm-auth-card h1{font-size:22px}.cm-auth-card p{font-size:13px}
+  .cm-auth-actions,.cm-auth-name-row{grid-template-columns:1fr}
+  .cm-auth-card label{font-size:12px;margin-top:8px}.cm-auth-card input{min-height:44px;padding:10px 12px}
+  .cm-pass input{padding-right:46px}.cm-auth-help{font-size:11px;margin:6px 0 0}
+  .cm-auth-actions{margin-top:12px}.cm-auth-link{font-size:12px}.cm-code{gap:5px}.cm-code input{min-width:0;font-size:18px}
+  .cm-account{margin-top:14px}.cm-user-menu>summary{background:rgba(255,255,255,.1)}
+}
+.cm-field-error{font-size:11px;color:var(--neg);margin-top:4px;min-height:14px}
+.cm-auth-submit[disabled]{opacity:.6;cursor:not-allowed}
+.cm-resend[disabled]{opacity:.55;cursor:not-allowed;text-decoration:none}
 
 </style>
 </head>
@@ -636,17 +648,17 @@ img.sh.shk{opacity:1}
 
     <div id="cmPanelSignup" class="cm-auth-panel" hidden>
       <div class="cm-auth-name-row">
-        <div><label for="cmAuthFirst">Nome</label><input id="cmAuthFirst" type="text" autocomplete="given-name" placeholder="Victor"></div>
-        <div><label for="cmAuthLast">Sobrenome</label><input id="cmAuthLast" type="text" autocomplete="family-name" placeholder="Lima"></div>
+        <div><label for="cmAuthFirst">Nome</label><input id="cmAuthFirst" type="text" autocomplete="given-name" placeholder="Victor" oninput="cmValidateSignup()"><div id="cmErrFirst" class="cm-field-error"></div></div>
+        <div><label for="cmAuthLast">Sobrenome</label><input id="cmAuthLast" type="text" autocomplete="family-name" placeholder="Lima" oninput="cmValidateSignup()"><div id="cmErrLast" class="cm-field-error"></div></div>
       </div>
       <label for="cmSignupEmail">E-mail / Gmail</label>
-      <input id="cmSignupEmail" type="email" autocomplete="email" inputmode="email" placeholder="seu@gmail.com">
+      <input id="cmSignupEmail" type="email" autocomplete="email" inputmode="email" placeholder="seu@gmail.com" oninput="cmValidateSignup()"><div id="cmErrEmail" class="cm-field-error"></div>
       <label for="cmSignupPassword">Senha</label>
-      <div class="cm-pass"><input id="cmSignupPassword" type="password" autocomplete="new-password" minlength="6" placeholder="Mínimo de 6 caracteres"><button class="cm-pass-eye" type="button" aria-label="Mostrar ou ocultar senha" onclick="cmTogglePassword('cmSignupPassword',this)">◉</button></div>
+      <div class="cm-pass"><input id="cmSignupPassword" type="password" autocomplete="new-password" minlength="6" placeholder="Mínimo de 6 caracteres" oninput="cmValidateSignup()"><button class="cm-pass-eye" type="button" aria-label="Mostrar ou ocultar senha" onclick="cmTogglePassword('cmSignupPassword',this)">◉</button></div><div id="cmErrPassword" class="cm-field-error"></div>
       <label for="cmSignupConfirm">Confirmar senha</label>
-      <div class="cm-pass"><input id="cmSignupConfirm" type="password" autocomplete="new-password" minlength="6" placeholder="Digite a senha novamente"><button class="cm-pass-eye" type="button" aria-label="Mostrar ou ocultar senha" onclick="cmTogglePassword('cmSignupConfirm',this)">◉</button></div>
-      <p class="cm-auth-help">Após criar a conta, você confirma o e-mail com um código de 6 dígitos. Só depois seu cadastro aparece para aprovação do Presidente/Vice-presidente.</p>
-      <div class="cm-auth-actions single"><button class="btn" id="cmAuthSignup" type="button" onclick="cmAuthSubmit('signup')">Continuar</button></div>
+      <div class="cm-pass"><input id="cmSignupConfirm" type="password" autocomplete="new-password" minlength="6" placeholder="Digite a senha novamente" oninput="cmValidateSignup()"><button class="cm-pass-eye" type="button" aria-label="Mostrar ou ocultar senha" onclick="cmTogglePassword('cmSignupConfirm',this)">◉</button></div><div id="cmErrConfirm" class="cm-field-error"></div>
+      <p class="cm-auth-help">Após criar a conta, você confirma o e-mail com um código de 6 dígitos. Só depois seu cadastro aparece para aprovação do Dono/Presidente/Vice-presidente.</p>
+      <div class="cm-auth-actions single"><button class="btn cm-auth-submit" id="cmAuthSignup" type="button" onclick="cmAuthSubmit('signup')">Continuar</button></div>
       <button class="cm-auth-link cm-auth-switch" type="button" onclick="cmAuthSetMode('signin')">Já tenho uma conta · Entrar</button>
     </div>
 
@@ -654,7 +666,7 @@ img.sh.shk{opacity:1}
       <h3 style="margin:0 0 6px">Verifique seu e-mail</h3>
       <p class="cm-auth-help">Enviamos um código de 6 dígitos para <b id="cmVerifyEmail"></b>. Digite o código abaixo.</p>
       <div id="cmSignupCode" class="cm-code"><input id="cmCode0" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="cmCodeMove(this,0,'cmCode')" onkeydown="cmCodeBack(event,0,'cmCode')"><input id="cmCode1" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="cmCodeMove(this,1,'cmCode')" onkeydown="cmCodeBack(event,1,'cmCode')"><input id="cmCode2" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="cmCodeMove(this,2,'cmCode')" onkeydown="cmCodeBack(event,2,'cmCode')"><input id="cmCode3" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="cmCodeMove(this,3,'cmCode')" onkeydown="cmCodeBack(event,3,'cmCode')"><input id="cmCode4" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="cmCodeMove(this,4,'cmCode')" onkeydown="cmCodeBack(event,4,'cmCode')"><input id="cmCode5" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="cmCodeMove(this,5,'cmCode')" onkeydown="cmCodeBack(event,5,'cmCode')"></div>
-      <button class="cm-auth-link cm-auth-switch" type="button" onclick="cmResendSignupCode()">Não recebeu? Reenviar código</button>
+      <button id="cmResendSignup" class="cm-auth-link cm-auth-switch cm-resend" type="button" onclick="cmResendSignupCode()">Não recebeu? Reenviar código</button>
       <div class="cm-auth-actions single"><button class="btn" type="button" onclick="cmVerifySignupCode()">Confirmar código</button></div>
       <button class="cm-auth-link cm-auth-switch" type="button" onclick="cmAuthSetMode('signin')">Voltar para o login</button>
     </div>
@@ -770,7 +782,7 @@ const SUPABASE_KEY='sb_publishable_QObRfLJxDi9Kh8-nNLoJYA_pQ3feKBY';
 const sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
 const LEGACY_CACHE_KEY='cm_v2';
 const _legacyRaw=localStorage.getItem(LEGACY_CACHE_KEY),_hadLegacy=!!_legacyRaw;
-let _cacheKey=LEGACY_CACHE_KEY,_authUser=null,_sbTimer=null,_sbBusy=false,_sbLoaded=false,_authMode='signin',_pendingSignupEmail='',_recoveryEmail='',_recoveryVerified=false,_memberFilter='',_members=[],_clubMembers=[],_accessRequests=[],_accessRequest=null,_actualRole='Presidente',_permRole='Staff',_permMode='role',_permUser='',_userRoleDraft='',_userPermDraft=null,_userPermDirty=false;
+let _cacheKey=LEGACY_CACHE_KEY,_authUser=null,_sbTimer=null,_sbBusy=false,_sbLoaded=false,_authMode='signin',_pendingSignupEmail=localStorage.getItem('cm_pending_signup_email')||'',_recoveryEmail='',_recoveryVerified=false,_signupBusy=false,_signupCooldownUntil=+(localStorage.getItem('cm_signup_cooldown_until')||0),_memberFilter='',_members=[],_clubMembers=[],_accessRequests=[],_accessRequest=null,_actualRole='Presidente',_permRole='Staff',_permMode='role',_permUser='',_userRoleDraft='',_userPermDraft=null,_userPermDirty=false;
 let DB;try{DB=_legacyRaw?JSON.parse(_legacyRaw):null}catch(e){}
 if(!DB||!DB.clubs)DB={cur:'c1',role:'Presidente',clubs:{c1:seed()}};
 let S=DB.clubs[DB.cur];
@@ -805,6 +817,7 @@ function cmAuthSetMode(mode){
   recovery:['Redefinir senha','Confirme o código recebido e cadastre uma nova senha.']
  };
  if(title)title.textContent=labels[_authMode][0];if(sub)sub.textContent=labels[_authMode][1];
+ if(_authMode==='signup')setTimeout(cmValidateSignup,0);if(_authMode==='verify')setTimeout(cmUpdateResendTimer,0);
  cmAuthMsg('');renderRememberedAccounts()
 }
 function cmUseOtherEmail(){cmAuthSetMode('signin');const e=$('#cmAuthEmail'),p=$('#cmAuthPassword');if(e){e.value='';e.focus()}if(p)p.value='';cmAuthMsg('Digite o e-mail e a senha da outra conta.')}
@@ -817,6 +830,25 @@ function cmAuthShow(session){
  _authUser=session&&session.user?session.user:null;const g=$('#cmAuthGate');if(g)g.hidden=!!_authUser;
  if(_authUser){_cacheKey=LEGACY_CACHE_KEY+':'+_authUser.id;rememberAccount(_authUser.email);cmAuthMsg('')}
  else cmAuthSetMode('signin')
+}
+function cmValidEmail(v){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v||'').trim())}
+function cmSignupCooldown(seconds=75){_signupCooldownUntil=Date.now()+seconds*1000;try{localStorage.setItem('cm_signup_cooldown_until',String(_signupCooldownUntil))}catch(e){};cmUpdateResendTimer()}
+function cmUpdateResendTimer(){
+ const b=$('#cmResendSignup');if(!b)return;const left=Math.max(0,Math.ceil((_signupCooldownUntil-Date.now())/1000));
+ b.disabled=left>0;b.textContent=left>0?'Reenviar código em '+left+'s':'Não recebeu? Reenviar código';
+ if(left>0)setTimeout(cmUpdateResendTimer,1000)
+}
+function cmSignupFieldError(id,msg=''){const e=document.getElementById(id);if(e)e.textContent=msg}
+function cmValidateSignup(){
+ const first=($('#cmAuthFirst')?.value||'').trim(),last=($('#cmAuthLast')?.value||'').trim(),email=($('#cmSignupEmail')?.value||'').trim().toLowerCase(),password=$('#cmSignupPassword')?.value||'',confirm=$('#cmSignupConfirm')?.value||'';
+ let ok=true;
+ cmSignupFieldError('cmErrFirst',first.length>=2?'':'Informe seu nome.');if(first.length<2)ok=false;
+ cmSignupFieldError('cmErrLast',last.length>=2?'':'Informe seu sobrenome.');if(last.length<2)ok=false;
+ cmSignupFieldError('cmErrEmail',cmValidEmail(email)?'':'Informe um e-mail válido.');if(!cmValidEmail(email))ok=false;
+ cmSignupFieldError('cmErrPassword',password.length>=6?'':'Use pelo menos 6 caracteres.');if(password.length<6)ok=false;
+ cmSignupFieldError('cmErrConfirm',confirm===password&&confirm.length>=6?'':'As senhas precisam ser iguais.');if(confirm!==password||confirm.length<6)ok=false;
+ const b=$('#cmAuthSignup');if(b)b.disabled=!ok||_signupBusy;
+ return ok
 }
 async function cmAuthSubmit(mode){
  if(!sb)return cmAuthMsg('Não foi possível iniciar a conexão com o Supabase.','bad');
@@ -831,30 +863,31 @@ async function cmAuthSubmit(mode){
   finally{cmAuthBusy(false)};return
  }
  const first=($('#cmAuthFirst')?.value||'').trim(),last=($('#cmAuthLast')?.value||'').trim(),email=($('#cmSignupEmail')?.value||'').trim().toLowerCase(),password=$('#cmSignupPassword')?.value||'',confirm=$('#cmSignupConfirm')?.value||'';
- if(first.length<2)return cmAuthMsg('Informe seu nome.','bad');if(last.length<2)return cmAuthMsg('Informe seu sobrenome.','bad');if(!email)return cmAuthMsg('Informe seu Gmail/e-mail.','bad');
- if(password.length<6)return cmAuthMsg('A senha precisa ter pelo menos 6 caracteres.','bad');if(password!==confirm)return cmAuthMsg('As duas senhas precisam ser iguais.','bad');
- cmAuthBusy(true);cmAuthMsg('Criando sua conta...');
+ if(!cmValidateSignup())return cmAuthMsg('Revise os campos destacados antes de continuar.','bad');
+ if(_signupBusy)return;_signupBusy=true;cmAuthBusy(true);const sbt=$('#cmAuthSignup');if(sbt)sbt.textContent='Enviando código...';cmAuthMsg('Criando sua conta e enviando o código...');
  try{
   const fullName=(first+' '+last).trim();
   const {data,error}=await sb.auth.signUp({email,password,options:{data:{first_name:first,last_name:last,full_name:fullName},emailRedirectTo:location.origin}});
-  if(error)throw error;rememberAccount(email);_pendingSignupEmail=email;
+  if(error)throw error;rememberAccount(email);_pendingSignupEmail=email;try{localStorage.setItem('cm_pending_signup_email',email)}catch(e){};cmSignupCooldown(75);
   if(data.session){await sb.auth.signOut({scope:'local'});cmAuthMsg('Seu e-mail já estava confirmado. Entre novamente para continuar.','ok');cmAuthSetMode('signin');return}
   const lab=$('#cmVerifyEmail');if(lab)lab.textContent=email;cmClearCode('cmCode');cmAuthSetMode('verify');cmAuthMsg('Digite o código de 6 dígitos recebido no e-mail.','ok')
- }catch(e){const msg=String(e&&e.message||'');if(/rate limit/i.test(msg))cmAuthMsg('O serviço de e-mail atingiu o limite temporário. Aguarde alguns minutos e tente novamente.','bad');else cmAuthMsg(msg||'Não foi possível criar a conta.','bad')}
- finally{cmAuthBusy(false)}
+ }catch(e){const msg=String(e&&e.message||'');if(/rate limit|too many requests/i.test(msg)){cmSignupCooldown(120);cmAuthMsg('O provedor de e-mail bloqueou novos envios temporariamente. Não clique várias vezes. Aguarde o contador e tente novamente.','bad')}else cmAuthMsg(msg||'Não foi possível criar a conta.','bad')}
+ finally{_signupBusy=false;cmAuthBusy(false);const sbt=$('#cmAuthSignup');if(sbt)sbt.textContent='Continuar';cmValidateSignup()}
 }
 async function cmVerifySignupCode(){
  const email=_pendingSignupEmail,token=cmReadCode('cmCode');if(!email)return cmAuthSetMode('signup');if(token.length!==6)return cmAuthMsg('Digite os 6 números do código.','bad');
  cmAuthMsg('Confirmando código...');
  try{
   const {data,error}=await sb.auth.verifyOtp({email,token,type:'email'});if(error)throw error;
-  if(data.session){cmAuthShow(data.session);_sbLoaded=false;await loadSupabase();render()}
+  if(data.session){try{localStorage.removeItem('cm_pending_signup_email');localStorage.removeItem('cm_signup_cooldown_until')}catch(e){};_pendingSignupEmail='';cmAuthShow(data.session);_sbLoaded=false;await loadSupabase();render()}
  }catch(e){cmAuthMsg('Código inválido ou expirado. Confira o e-mail e tente novamente.','bad')}
 }
 async function cmResendSignupCode(){
- if(!_pendingSignupEmail)return cmAuthSetMode('signup');cmAuthMsg('Reenviando código...');
+ if(!_pendingSignupEmail)return cmAuthSetMode('signup');
+ if(Date.now()<_signupCooldownUntil){cmUpdateResendTimer();return cmAuthMsg('Aguarde o contador antes de solicitar outro código.','bad')}
+ cmSignupCooldown(75);cmAuthMsg('Reenviando código...');
  try{const {error}=await sb.auth.resend({type:'signup',email:_pendingSignupEmail,options:{emailRedirectTo:location.origin}});if(error)throw error;cmAuthMsg('Código reenviado. Verifique sua caixa de entrada e spam.','ok')}
- catch(e){const msg=String(e&&e.message||'');cmAuthMsg(/rate limit/i.test(msg)?'Aguarde alguns minutos antes de pedir outro código.':msg||'Não foi possível reenviar o código.','bad')}
+ catch(e){const msg=String(e&&e.message||'');if(/rate limit|too many requests/i.test(msg)){cmSignupCooldown(120);cmAuthMsg('O limite temporário de e-mail ainda está ativo. Aguarde o contador antes de tentar novamente.','bad')}else cmAuthMsg(msg||'Não foi possível reenviar o código.','bad')}
 }
 async function cmSendRecoveryCode(){
  const email=($('#cmRecoveryEmail')?.value||_recoveryEmail||'').trim().toLowerCase();if(!email)return cmAuthMsg('Informe o e-mail da sua conta.','bad');
@@ -896,8 +929,8 @@ async function cmSwitchUser(){
  }catch(e){console.error(e);note('Não consegui trocar de usuário agora. Tente novamente.')}
 }
 const cmAccountHtml=()=>_authUser?(()=>{
- const email=_authUser.email||'Conta conectada',name=(email.split('@')[0]||'Usuário').replace(/[._-]+/g,' '),ini=name.split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase()||'US';
- return `<div class="cm-account"><details class="cm-user-menu"><summary><span class="cm-user-avatar">${esc(ini)}</span><span class="cm-user-copy"><span class="cm-user-name">${esc(name)}</span><span class="cm-account-email">${esc(email)}</span></span><span>⌃</span></summary><div class="cm-user-pop"><button class="btn ghost sm" onclick="cmSwitchUser()">⇄ Alterar usuário</button><button class="btn ghost sm" onclick="cmSignOut()">↪ Sair da conta</button></div></details></div>`
+ const email=_authUser.email||'Conta conectada',meta=_authUser.user_metadata||{},name=meta.full_name||_clubMembers.find(m=>m.user_id===_authUser.id)?.display_name||(email.split('@')[0]||'Usuário').replace(/[._-]+/g,' '),role=_actualRole||'Usuário',ini=name.split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase()||'US';
+ return `<div class="cm-account"><details class="cm-user-menu"><summary><span class="cm-user-avatar">${esc(ini)}</span><span class="cm-user-copy"><span class="cm-user-name">${esc(name)}</span><span class="cm-account-email">${esc(email)} · ${esc(role)}</span></span><span>⌃</span></summary><div class="cm-user-pop"><button class="btn ghost sm" onclick="cmSwitchUser()">⇄ Alterar usuário</button><button class="btn ghost sm" onclick="cmSignOut()">↪ Sair da conta</button></div></details></div>`
 })():'';
 const cmSettingsPayload=(clubId,state)=>({club_id:clubId,fee_value:+state.feeValue||0,fee_day:+state.feeDay||10,initial_balance:+state.initial||0,initial_account:state.initialAcc||null,rating_weights:state.weights||{coach:50,staff:30,players:20},min_rated:+state.minRated||3,lists:state.lists||{},extra:{hiddenRk:state.hiddenRk||[],rankOut:state.rankOut||[]}});
 function cmShowAccessGate(req){
@@ -905,7 +938,7 @@ function cmShowAccessGate(req){
  const st=req&&req.status||'pending';
  if(t)t.textContent=st==='rejected'
    ?'Seu pedido de acesso não foi aprovado. Fale com o administrador do clube para revisar seu cadastro.'
-   :'Seu e-mail foi confirmado. Agora seu cadastro está aguardando aprovação do Presidente ou Vice-presidente. Quando o acesso for liberado, entre novamente.';
+   :'Seu e-mail foi confirmado. Agora seu cadastro está aguardando aprovação do Dono, Presidente ou Vice-presidente. Quando o acesso for liberado, entre novamente.';
  g.hidden=false
 }
 function cmHideAccessGate(){const g=$('#cmAccessGate');if(g)g.hidden=true}
@@ -915,15 +948,15 @@ async function cmLoadOwnAccessRequest(){
  if(error)throw error;_accessRequest=data||null;return _accessRequest
 }
 async function cmLoadAccessRequests(){
- const anyAdmin=_members.some(m=>m.status==='active'&&(m.role==='Presidente'||m.role==='Vice-presidente'));
+ const anyAdmin=_members.some(m=>m.status==='active'&&(m.role==='Dono'||m.role==='Dono'||m.role==='Presidente'||m.role==='Vice-presidente'));
  if(!sb||!anyAdmin){_accessRequests=[];return[]}
  const {data,error}=await sb.from('cm_access_requests').select('id,user_id,email,full_name,status,requested_at,reviewed_at,assigned_club_id,assigned_role,note').eq('status','pending').order('requested_at',{ascending:true});
  if(error)throw error;_accessRequests=data||[];return _accessRequests
 }
 async function cmApproveAccess(id){
- if(!isActualAdmin())return note('Somente Presidente ou Vice-presidente podem aprovar acessos.');
+ if(!isActualAdmin())return note('Somente Dono, Dono, Presidente ou Vice-presidente podem aprovar acessos.');
  const r=_accessRequests.find(x=>x.id===id);if(!r)return;
- const roles=Object.keys(S.perms||{}),adminClubIds=new Set(_members.filter(m=>m.status==='active'&&(m.role==='Presidente'||m.role==='Vice-presidente')).map(m=>m.club_id)),clubs=Object.entries(DB.clubs).filter(([id])=>adminClubIds.has(id)).map(([id,st])=>[id,st.club.name+(st.club.demo?' · Demonstração':'')]);
+ const roles=Object.keys(S.perms||{}).filter(r=>r!=='Dono'),adminClubIds=new Set(_members.filter(m=>m.status==='active'&&(m.role==='Dono'||m.role==='Dono'||m.role==='Presidente'||m.role==='Vice-presidente')).map(m=>m.club_id)),clubs=Object.entries(DB.clubs).filter(([id])=>adminClubIds.has(id)).map(([id,st])=>[id,st.club.name+(st.club.demo?' · Demonstração':'')]);
  if(!clubs.length)return note('Você não possui um clube administrável para vincular este usuário.');
  modal('Aprovar usuário',[
    {k:'club',l:'Clube',t:'sel',o:clubs,v:DB.cur},
@@ -956,9 +989,9 @@ function cmOpenUserPermissions(uid){
  _permMode='user';selectPermUser(uid);render();setTimeout(()=>{const e=document.getElementById('cm-permissions');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})},50)
 }
 function cmEditMember(id){
- if(!isActualAdmin())return note('Somente Presidente ou Vice-presidente podem editar usuários.');
+ if(!isActualAdmin())return note('Somente Dono, Dono, Presidente ou Vice-presidente podem editar usuários.');
  const m=_clubMembers.find(x=>x.id===id);if(!m)return;
- const roles=Object.keys(S.perms||{});
+ const roles=Object.keys(S.perms||{}).filter(r=>r!=='Dono'||m.role==='Dono');
  modal('Editar usuário · '+(m.email||'sem e-mail'),[
    {k:'name',l:'Nome e sobrenome',v:m.display_name||''},
    {k:'role',l:'Função',t:'sel',o:roles,v:m.role}
@@ -972,7 +1005,7 @@ function cmEditMember(id){
   }catch(e){console.error(e);note(e&&e.message?e.message:'Não consegui atualizar este usuário.')}})()})
 }
 function cmDeleteMember(id){
- if(!isActualAdmin())return note('Somente Presidente ou Vice-presidente podem remover usuários.');
+ if(!isActualAdmin())return note('Somente Dono, Dono, Presidente ou Vice-presidente podem remover usuários.');
  const m=_clubMembers.find(x=>x.id===id);if(!m)return;
  if(m.user_id===(_authUser&&_authUser.id))return note('Você não pode excluir seu próprio acesso por esta tela.');
  ask('Remover <b>'+esc(m.display_name||m.email||'este usuário')+'</b> do clube <b>'+esc(S.club.name)+'</b>?<br><span class="mute">A conta não será apagada; apenas o acesso a este clube será removido.</span>',()=>{(async()=>{try{
@@ -981,7 +1014,7 @@ function cmDeleteMember(id){
   }catch(e){console.error(e);note(e&&e.message?e.message:'Não consegui remover este usuário.')}})()},'Remover acesso','REMOVER USUÁRIO')
 }
 async function cmDeleteAccount(id){
- if(!isActualAdmin())return note('Somente Presidente ou Vice-presidente podem excluir contas.');
+ if(!isActualAdmin())return note('Somente Dono, Dono, Presidente ou Vice-presidente podem excluir contas.');
  const m=_clubMembers.find(x=>x.id===id);if(!m)return;
  if(m.user_id===(_authUser&&_authUser.id))return note('Você não pode excluir sua própria conta por esta tela.');
  ask('Excluir definitivamente a conta de <b>'+esc(m.display_name||m.email||'este usuário')+'</b>?<br><span class="neg">A conta de login será apagada. Para voltar ao sistema, essa pessoa precisará criar uma nova conta, confirmar o código por e-mail e passar pela aprovação novamente.</span>',()=>{(async()=>{try{
@@ -993,14 +1026,14 @@ function usersPanel(){
  if(!isActualAdmin())return'';
  const q=String(_memberFilter||'').trim().toLowerCase();
  const rows=_clubMembers.filter(m=>!q||[m.display_name,m.email,m.role].some(v=>String(v||'').toLowerCase().includes(q)));
- const desktop=rows.map(m=>`<tr><td><b>${esc(m.display_name||'Usuário')}</b><div class="mute" style="font-size:12px">${esc(m.email||'—')}</div></td><td>${esc(m.role)}</td><td><span class="tag ${m.status==='active'?'ok':'neu'}">${m.status==='active'?'Ativo':esc(m.status)}</span></td><td><div class="cm-user-row-actions"><button class="btn ghost sm" onclick="cmEditMember('${m.id}')">Editar</button><button class="btn ghost sm" onclick="cmOpenUserPermissions('${m.user_id}')">Permissões</button>${m.user_id!==(_authUser&&_authUser.id)?`<button class="btn ghost sm" onclick="cmDeleteMember('${m.id}')">Remover do clube</button><button class="btn ghost sm" style="color:var(--neg)" onclick="cmDeleteAccount('${m.id}')">Excluir conta</button>`:''}</div></td></tr>`).join('');
- const mobile=rows.map(m=>`<div class="cm-user-mini"><span class="cm-user-avatar" style="background:var(--soft);color:var(--brand)">${esc((m.display_name||m.email||'US').split(/\s|@/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase())}</span><span class="cm-user-copy"><span class="cm-user-name">${esc(m.display_name||'Usuário')}</span><span class="mute" style="font-size:11px">${esc(m.email||'—')} · ${esc(m.role)}</span></span><button class="btn ghost sm" onclick="cmEditMember('${m.id}')">Editar</button>${m.user_id!==(_authUser&&_authUser.id)?`<button class="btn ghost sm" onclick="cmDeleteMember('${m.id}')">Remover do clube</button><button class="btn ghost sm" style="color:var(--neg)" onclick="cmDeleteAccount('${m.id}')">Excluir conta</button>`:''}</div>`).join('');
+ const desktop=rows.map(m=>`<tr><td><b>${esc(m.display_name||'Usuário')}</b><div class="mute" style="font-size:12px">${esc(m.email||'—')}</div></td><td>${esc(m.role==='Dono'?'Dono':m.role)}</td><td><span class="tag ${m.status==='active'?'ok':'neu'}">${m.status==='active'?'Ativo':esc(m.status)}</span></td><td><div class="cm-user-row-actions"><button class="btn ghost sm" onclick="cmEditMember('${m.id}')">Editar</button><button class="btn ghost sm" onclick="cmOpenUserPermissions('${m.user_id}')">Permissões</button>${m.role!=='Dono'&&m.user_id!==(_authUser&&_authUser.id)?`<button class="btn ghost sm" onclick="cmDeleteMember('${m.id}')">Remover do clube</button><button class="btn ghost sm" style="color:var(--neg)" onclick="cmDeleteAccount('${m.id}')">Excluir conta</button>`:''}</div></td></tr>`).join('');
+ const mobile=rows.map(m=>`<div class="cm-user-mini"><span class="cm-user-avatar" style="background:var(--soft);color:var(--brand)">${esc((m.display_name||m.email||'US').split(/\s|@/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase())}</span><span class="cm-user-copy"><span class="cm-user-name">${esc(m.display_name||'Usuário')}</span><span class="mute" style="font-size:11px">${esc(m.email||'—')} · ${esc(m.role==='Dono'?'Dono':m.role)}</span></span><button class="btn ghost sm" onclick="cmEditMember('${m.id}')">Editar</button>${m.user_id!==(_authUser&&_authUser.id)?`<button class="btn ghost sm" onclick="cmDeleteMember('${m.id}')">Remover do clube</button><button class="btn ghost sm" style="color:var(--neg)" onclick="cmDeleteAccount('${m.id}')">Excluir conta</button>`:''}</div>`).join('');
  return `<div class="card" style="margin-top:12px"><div class="cm-users-head"><div><h3 style="margin:0">Usuários do clube <span class="tag neu">${_clubMembers.length}</span></h3><p class="mute" style="margin:4px 0 0">Edite nome, função e permissões. “Remover do clube” mantém a conta; “Excluir conta” obriga novo cadastro e nova aprovação.</p></div><div class="cm-users-tools"><input placeholder="Buscar usuário..." value="${esc(_memberFilter)}" oninput="_memberFilter=this.value;render()"></div></div>
  <div class="wrap cm-users-table" style="margin-top:10px"><table class="tbl"><tr><th>Usuário</th><th>Função</th><th>Status</th><th>Ações</th></tr>${desktop||'<tr><td colspan="4" class="empty">Nenhum usuário encontrado.</td></tr>'}</table></div>
  <div class="cm-user-card-list">${mobile||'<div class="empty">Nenhum usuário encontrado.</div>'}</div></div>`
 }
 function accessRequestsPanel(){
- const anyAdmin=_members.some(m=>m.status==='active'&&(m.role==='Presidente'||m.role==='Vice-presidente'));if(!anyAdmin)return'';
+ const anyAdmin=_members.some(m=>m.status==='active'&&(m.role==='Dono'||m.role==='Dono'||m.role==='Presidente'||m.role==='Vice-presidente'));if(!anyAdmin)return'';
  const rows=_accessRequests.map(r=>`<tr><td><b>${esc(r.full_name||'Sem nome')}</b><div class="mute" style="font-size:12px">${esc(r.email)}</div></td><td>${new Date(r.requested_at).toLocaleString('pt-BR')}</td><td><div class="cm-pending-actions"><button class="btn sm" onclick="cmApproveAccess('${r.id}')">Aprovar</button><button class="btn ghost sm" onclick="cmRejectAccess('${r.id}')">Recusar</button></div></td></tr>`).join('');
  return `<div class="card cm-pending" style="margin-top:12px"><div class="row"><div><h3 style="margin:0">Usuários pendentes</h3><p class="mute" style="margin:4px 0 0">Apenas usuários aprovados podem acessar o sistema.</p></div><span class="sp"></span>${_accessRequests.length?`<span class="cm-request-badge">${_accessRequests.length}</span>`:''}</div>${rows?`<div class="wrap" style="margin-top:10px"><table class="tbl"><tr><th>Usuário</th><th>Solicitado em</th><th>Ações</th></tr>${rows}</table></div>`:'<div class="empty">Nenhum usuário aguardando aprovação.</div>'}</div>`
 }
@@ -1010,7 +1043,7 @@ async function cmBootstrapClub(localState,opts={}){
  const {data:club,error:clubErr}=await sb.from('cm_clubs').insert({name:cl.name||'Meu Clube',sigla:cl.sigla||'MC',brand_color:cl.color||'#1F6B4A',accent_color:cl.accent||'#E8B923',created_by:_authUser.id,is_demo:!!opts.isDemo}).select('id').single();
  if(clubErr)throw clubErr;
  const clubId=club.id;
- const {error:memErr}=await sb.from('cm_members').insert({club_id:clubId,user_id:_authUser.id,role:'Presidente',status:'active',display_name:_authUser.user_metadata&&_authUser.user_metadata.full_name||_authUser.email||'Presidente',email:_authUser.email||null});
+ const {error:memErr}=await sb.from('cm_members').insert({club_id:clubId,user_id:_authUser.id,role:'Dono',status:'active',display_name:_authUser.user_metadata&&_authUser.user_metadata.full_name||_authUser.email||'Presidente',email:_authUser.email||null});
  if(memErr)throw memErr;
  if(opts.responsibleUserId&&opts.responsibleUserId!==_authUser.id){
   const src=(opts.availableUsers||[]).find(x=>x.user_id===opts.responsibleUserId);
@@ -1028,7 +1061,7 @@ async function cmAvailableUsers(){
  const {data,error}=await sb.from('cm_members').select('user_id,display_name,role,status').eq('status','active');
  if(error)throw error;
  const map=new Map();(data||[]).forEach(x=>{if(!map.has(x.user_id))map.set(x.user_id,x)});
- if(_authUser&&!map.has(_authUser.id))map.set(_authUser.id,{user_id:_authUser.id,display_name:_authUser.email||'Usuário',role:'Presidente'});
+ if(_authUser&&!map.has(_authUser.id))map.set(_authUser.id,{user_id:_authUser.id,display_name:_authUser.email||'Usuário',role:'Dono'});
  return[...map.values()]
 }
 async function cmEnsureDemoClub(){
@@ -1043,7 +1076,7 @@ async function cmEnsureDemoClub(){
    let {data:me,error:meErr}=await sb.from('cm_members').select('id,club_id,user_id,role,status,display_name,email,permissions').eq('club_id',remote.id).eq('user_id',_authUser.id).maybeSingle();
    if(meErr)throw meErr;
    if(!me){
-    const ins=await sb.from('cm_members').insert({club_id:remote.id,user_id:_authUser.id,role:'Presidente',status:'active',display_name:_authUser.email||'Presidente'}).select('id,club_id,user_id,role,status,display_name,email,permissions').single();
+    const ins=await sb.from('cm_members').insert({club_id:remote.id,user_id:_authUser.id,role:'Dono',status:'active',display_name:_authUser.email||'Presidente'}).select('id,club_id,user_id,role,status,display_name,email,permissions').single();
     if(ins.error)throw ins.error;me=ins.data
    }
    if(me)_members.push(me)
@@ -1157,7 +1190,7 @@ async function cmAuthInit(){
  const {data:{session},error}=await sb.auth.getSession();
  if(error){cmAuthMsg(error.message||'Não foi possível verificar a sessão.','bad');return}
  cmAuthShow(session);
- if(session)await loadSupabase();
+ if(session)await loadSupabase();else if(_pendingSignupEmail){const lab=$('#cmVerifyEmail');if(lab)lab.textContent=_pendingSignupEmail;cmAuthSetMode('verify')}
 }
 if(sb){
  sb.auth.onAuthStateChange((event,session)=>{setTimeout(async()=>{
@@ -1168,7 +1201,7 @@ if(sb){
   }
   _sbLoaded=false;cmAuthShow(session);if(session)await loadSupabase()
  },0)});
- cmAuthInit();
+ cmAuthInit();setTimeout(cmValidateSignup,0);
 }
 
 /* Migração segura Posição <- Status. Só age em jogador cujo status NÃO é um status de disponibilidade conhecido
@@ -1191,14 +1224,14 @@ Object.values(DB.clubs).forEach(c=>fixPos(c));
 /* permissões v2: Presidente e Vice-presidente têm acesso total.
    Demais funções começam em somente visualização; o administrador pode personalizar por módulo e ação. */
 const PERM_ACTIONS=['view','create','edit','delete'];
-const ADMIN_ROLES=['Presidente','Vice-presidente'];
+const ADMIN_ROLES=['Dono','Presidente','Vice-presidente'];
 const isAdminRole=r=>ADMIN_ROLES.includes(r||DB.role);
 const isActualAdmin=()=>ADMIN_ROLES.includes(_actualRole);
 const fullPerm=()=>({view:true,create:true,edit:true,delete:true});
 const viewPerm=(on=true)=>({view:!!on,create:false,edit:false,delete:false});
 function normalizePerms(C,forceDefault=false){
  if(!C)return false;C.perms=C.perms||{};let ch=false;
- const roles=['Presidente','Vice-presidente','Diretor','Tesoureiro','Técnico','Auxiliar técnico','Comissão técnica','Jogador','Staff','Resp. estatísticas','Resp. súmula'];
+ const roles=['Dono','Presidente','Vice-presidente','Diretor','Tesoureiro','Técnico','Auxiliar técnico','Comissão técnica','Jogador','Staff','Resp. estatísticas','Resp. súmula'];
  roles.forEach(r=>{C.perms[r]=C.perms[r]||{};NAV.forEach(([k])=>{
    let cur=C.perms[r][k],next;
    if(ADMIN_ROLES.includes(r))next=fullPerm();
@@ -1226,7 +1259,7 @@ const requirePerm=(mod,act,msg)=>{if(canDo(mod,act))return true;note(msg||'Sua f
 
 function blank(name){const d=seed();return{...d,club:{...d.club,name,sigla:name.slice(0,2).toUpperCase()},players:[],matches:[],events:[],tx:[],fees:{[TODAY.slice(0,7)]:{}},comps:[],sponsors:[],contracts:[],docs:[],staff:[]}}
 async function newClubDialog(){
- if(!isActualAdmin())return note('Somente Presidente ou Vice-presidente podem criar um novo clube.');
+ if(!isActualAdmin())return note('Somente Dono, Dono, Presidente ou Vice-presidente podem criar um novo clube.');
  try{
   const users=await cmAvailableUsers(),roles=Object.keys(S.perms);
   const userOpts=users.map(u=>[u.user_id,(u.display_name||'Usuário')+(u.user_id===_authUser.id?' (você)':'')]);
@@ -1235,9 +1268,9 @@ async function newClubDialog(){
    {k:'user',l:'Usuário responsável',t:'sel',o:userOpts,v:_authUser.id},
    {k:'role',l:'Função do usuário no clube',t:'sel',o:roles,v:'Jogador'}
   ],v=>{if(!v.name)return'Informe o nome do clube.';(async()=>{try{
-    const role=v.user===_authUser.id?'Presidente':v.role;
+    const role=v.user===_authUser.id?'Dono':v.role;
     const b=await cmBootstrapClub(blank(v.name),{responsibleUserId:v.user,responsibleRole:role,availableUsers:users});
-    DB.clubs[b.clubId]=b.state;DB.cur=b.clubId;S=DB.clubs[b.clubId];_actualRole='Presidente';DB.role='Presidente';normalizePerms(S);fill();fixPos();
+    DB.clubs[b.clubId]=b.state;DB.cur=b.clubId;S=DB.clubs[b.clubId];_actualRole='Dono';DB.role='Dono';normalizePerms(S);fill();fixPos();
     const {data:mine}=await sb.from('cm_members').select('id,club_id,user_id,role,status,display_name,email,permissions').eq('club_id',b.clubId).eq('user_id',_authUser.id).maybeSingle();
     if(mine)_members.push(mine);
     try{localStorage.setItem(_cacheKey,JSON.stringify(DB))}catch(e){}
@@ -1251,7 +1284,7 @@ function seedExtra(){
  const A=['dashboard','partidas','competicoes','elenco','campanha','estatisticas','ranking','calendario','financeiro','patrocinadores','contratos','documentos','config'];
  const fp=()=>({view:true,create:true,edit:true,delete:true}),vp=k=>({view:k!=='config',create:false,edit:false,delete:false});
  const mkRole=admin=>Object.fromEntries(A.map(k=>[k,admin?fp():vp(k)]));
- const perms={'Presidente':mkRole(true),'Vice-presidente':mkRole(true),'Diretor':mkRole(false),'Tesoureiro':mkRole(false),'Técnico':mkRole(false),'Auxiliar técnico':mkRole(false),'Comissão técnica':mkRole(false),'Jogador':mkRole(false),'Staff':mkRole(false),'Resp. estatísticas':mkRole(false),'Resp. súmula':mkRole(false)};
+ const perms={'Dono':mkRole(true),'Presidente':mkRole(true),'Vice-presidente':mkRole(true),'Diretor':mkRole(false),'Tesoureiro':mkRole(false),'Técnico':mkRole(false),'Auxiliar técnico':mkRole(false),'Comissão técnica':mkRole(false),'Jogador':mkRole(false),'Staff':mkRole(false),'Resp. estatísticas':mkRole(false),'Resp. súmula':mkRole(false)};
  const g2=(round,home,away,hg,ag)=>({id:nid(),round,home,away,hg,ag});
  const others=['Unidos da Vila','Real Bairro','Atlético Norte','Estrela FC','Vila Nova FC','Guarani do Sul','Bairro Alto EC'];
  const comp={id:nid(),name:'Copa Sergipe Amador',format:'pontos_corridos',rounds:14,pts:{w:3,d:1,l:0},tie:['vitorias','saldo','gols_pro'],
@@ -1617,7 +1650,7 @@ function compactUserOverrides(role,matrix){
 async function saveUserPermissions(){
  if(!isActualAdmin()||!_permUser||!_userPermDraft||!_userRoleDraft)return;
  const m=_clubMembers.find(x=>x.user_id===_permUser);if(!m)return;
- if(m.user_id===(_authUser&&_authUser.id)&&!ADMIN_ROLES.includes(_userRoleDraft))return note('Para evitar perder o acesso administrativo, você não pode retirar sua própria função de Presidente/Vice-presidente.');
+ if(m.user_id===(_authUser&&_authUser.id)&&!ADMIN_ROLES.includes(_userRoleDraft))return note('Para evitar perder o acesso administrativo, você não pode retirar sua própria função de Dono/Presidente/Vice-presidente.');
  const permissions=ADMIN_ROLES.includes(_userRoleDraft)?{}:compactUserOverrides(_userRoleDraft,_userPermDraft);
  try{
   const {data,error}=await sb.from('cm_members').update({role:_userRoleDraft,permissions}).eq('id',m.id).eq('club_id',DB.cur).select('id,user_id,role,status,display_name,permissions').single();
@@ -2086,7 +2119,7 @@ async function removeStorageTree(bucket,path){
  if(files.length){const {error:rmErr}=await sb.storage.from(bucket).remove(files);if(rmErr)console.warn('Falha ao remover arquivos de '+bucket,rmErr)}
 }
 async function deleteClubPermanent(){
- if(!isActualAdmin())return note('Somente Presidente ou Vice-presidente podem excluir um clube.');
+ if(!isActualAdmin())return note('Somente Dono, Presidente ou Vice-presidente podem excluir um clube.');
  if(S.club&&S.club.demo)return note('“Meu Clube” é o clube de demonstração do sistema e fica protegido contra exclusão.');
  if(Object.keys(DB.clubs).length<=1)return note('Você precisa manter pelo menos um clube. Crie outro clube antes de excluir este.');
  const clubId=DB.cur,name=S.club.name;
