@@ -593,7 +593,14 @@ img.sh.shk{opacity:1}
 .cm-recent-title{font-size:12px;font-weight:700;color:#5e7267;margin-bottom:2px}
 .cm-recent-btn{display:flex;align-items:center;gap:9px;width:100%;padding:9px 10px;border:1px solid #dce5df;border-radius:10px;background:#f8faf8;color:#14231c;text-align:left;cursor:pointer}
 .cm-recent-btn:hover{background:#eef5f0}.cm-recent-dot{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#dcefe3;font-weight:800;color:#1f6b4a;flex:none}.cm-recent-btn span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-@media(max-width:520px){.cm-auth-actions{grid-template-columns:1fr}}
+#cmAccessGate{position:fixed;inset:0;z-index:9998;display:grid;place-items:center;padding:20px;background:linear-gradient(160deg,#0c1812,#173629 65%,#0c1812)}
+#cmAccessGate[hidden]{display:none}
+.cm-access-card{width:min(460px,94vw);background:#fff;color:#14231c;border-radius:18px;padding:26px;box-shadow:0 24px 70px #0007;text-align:center}
+.cm-access-ico{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;margin:0 auto 14px;background:#e7f5ec;color:#1f6b4a;font-size:30px}
+.cm-access-card h2{margin:0 0 8px}.cm-access-card p{color:#5e7267;line-height:1.5}.cm-access-card .row{justify-content:center;margin-top:16px}
+.cm-pending{margin-top:12px}.cm-pending .tbl td,.cm-pending .tbl th{vertical-align:middle}.cm-pending-actions{display:flex;gap:6px;flex-wrap:wrap}
+.cm-request-badge{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--neg);color:#fff;font-size:11px;font-weight:800}
+@media(max-width:520px){.cm-auth-actions{grid-template-columns:1fr}.cm-account{margin-top:14px}.cm-user-menu>summary{background:rgba(255,255,255,.1)}}
 
 </style>
 </head>
@@ -609,6 +616,8 @@ img.sh.shk{opacity:1}
     <h1 id="cmAuthTitle">Acesse sua conta</h1>
     <p>Entre para sincronizar os dados do clube com segurança.</p>
     <div id="cmRecentAccounts" class="cm-recent"></div>
+    <label for="cmAuthName">Nome completo <span class="mute">(necessário para criar conta)</span></label>
+    <input id="cmAuthName" type="text" autocomplete="name" placeholder="Seu nome completo">
     <label for="cmAuthEmail">E-mail</label>
     <input id="cmAuthEmail" type="email" autocomplete="email" inputmode="email" placeholder="seu@email.com">
     <label for="cmAuthPassword">Senha</label>
@@ -618,6 +627,18 @@ img.sh.shk{opacity:1}
       <button class="btn ghost" id="cmAuthSignup" type="button" onclick="cmAuthSubmit('signup')">Criar conta</button>
     </div>
     <div id="cmAuthMsg" class="cm-auth-msg" role="status" aria-live="polite"></div>
+  </div>
+</div>
+
+<div id="cmAccessGate" hidden role="dialog" aria-modal="true" aria-labelledby="cmAccessTitle">
+  <div class="cm-access-card">
+    <div class="cm-access-ico">✉</div>
+    <h2 id="cmAccessTitle">Aguardando liberação</h2>
+    <p id="cmAccessText">Seu cadastro foi recebido. Confirme seu e-mail e aguarde a aprovação do administrador.</p>
+    <div class="row">
+      <button class="btn ghost" type="button" onclick="cmSwitchUser()">Alterar usuário</button>
+      <button class="btn" type="button" onclick="cmSignOut()">Sair</button>
+    </div>
   </div>
 </div>
 
@@ -695,7 +716,7 @@ const SUPABASE_KEY='sb_publishable_QObRfLJxDi9Kh8-nNLoJYA_pQ3feKBY';
 const sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
 const LEGACY_CACHE_KEY='cm_v2';
 const _legacyRaw=localStorage.getItem(LEGACY_CACHE_KEY),_hadLegacy=!!_legacyRaw;
-let _cacheKey=LEGACY_CACHE_KEY,_authUser=null,_sbTimer=null,_sbBusy=false,_sbLoaded=false,_members=[],_clubMembers=[],_actualRole='Presidente',_permRole='Staff',_permMode='role',_permUser='',_userRoleDraft='',_userPermDraft=null,_userPermDirty=false;
+let _cacheKey=LEGACY_CACHE_KEY,_authUser=null,_sbTimer=null,_sbBusy=false,_sbLoaded=false,_members=[],_clubMembers=[],_accessRequests=[],_accessRequest=null,_actualRole='Presidente',_permRole='Staff',_permMode='role',_permUser='',_userRoleDraft='',_userPermDraft=null,_userPermDirty=false;
 let DB;try{DB=_legacyRaw?JSON.parse(_legacyRaw):null}catch(e){}
 if(!DB||!DB.clubs)DB={cur:'c1',role:'Presidente',clubs:{c1:seed()}};
 let S=DB.clubs[DB.cur];
@@ -714,9 +735,9 @@ function renderRememberedAccounts(){
 }
 function chooseRememberedAccount(email){const e=$('#cmAuthEmail'),p=$('#cmAuthPassword');if(e)e.value=email||'';if(p){p.value='';p.focus()}cmAuthMsg('Digite a senha dessa conta para continuar.')}
 function cmResetSessionUi(){
- _authUser=null;_members=[];_clubMembers=[];_actualRole='Presidente';_permUser='';_userPermDraft=null;_userPermDirty=false;_sbLoaded=false;
+ _authUser=null;_members=[];_clubMembers=[];_accessRequests=[];_accessRequest=null;_actualRole='Presidente';_permUser='';_userPermDraft=null;_userPermDirty=false;_sbLoaded=false;
  const p=$('#cmAuthPassword');if(p)p.value='';
- const g=$('#cmAuthGate');if(g)g.hidden=false;
+ const g=$('#cmAuthGate');if(g)g.hidden=false;const ag=$('#cmAccessGate');if(ag)ag.hidden=true;
  renderRememberedAccounts()
 }
 function cmAuthShow(session){
@@ -727,17 +748,18 @@ function cmAuthShow(session){
 }
 async function cmAuthSubmit(mode){
  if(!sb)return cmAuthMsg('Não foi possível iniciar a conexão com o Supabase.','bad');
- const email=($('#cmAuthEmail')?.value||'').trim().toLowerCase(),password=$('#cmAuthPassword')?.value||'';
+ const name=($('#cmAuthName')?.value||'').trim(),email=($('#cmAuthEmail')?.value||'').trim().toLowerCase(),password=$('#cmAuthPassword')?.value||'';
+ if(mode==='signup'&&name.length<3)return cmAuthMsg('Informe seu nome completo para solicitar acesso.','bad');
  if(!email)return cmAuthMsg('Informe seu e-mail.','bad');
  if(password.length<6)return cmAuthMsg('A senha precisa ter pelo menos 6 caracteres.','bad');
  cmAuthBusy(true);cmAuthMsg(mode==='signup'?'Criando sua conta...':'Entrando...');
  try{
-  const res=mode==='signup'?await sb.auth.signUp({email,password}):await sb.auth.signInWithPassword({email,password});
+  const res=mode==='signup'?await sb.auth.signUp({email,password,options:{data:{full_name:name},emailRedirectTo:location.origin}}):await sb.auth.signInWithPassword({email,password});
   if(res.error)throw res.error;
   rememberAccount(email);
-  if(mode==='signup'&&!res.data.session){cmAuthMsg('Conta criada. Confira seu e-mail para confirmar o cadastro e depois entre.','ok');renderRememberedAccounts();return}
+  if(mode==='signup'&&!res.data.session){cmAuthMsg('Cadastro recebido. Confira o Gmail/e-mail para confirmar sua conta e depois aguarde a liberação do administrador.','ok');renderRememberedAccounts();return}
   if(res.data.session){cmAuthShow(res.data.session);_sbLoaded=false;await loadSupabase();render()}
- }catch(e){cmAuthMsg(e&&e.message?e.message:'Não foi possível autenticar.','bad')}
+ }catch(e){const msg=String(e&&e.message||'');if(/rate limit/i.test(msg))cmAuthMsg('Muitas tentativas de e-mail em pouco tempo. Aguarde alguns minutos e tente novamente. Seu acesso continuará dependendo da aprovação do administrador.','bad');else cmAuthMsg(msg||'Não foi possível autenticar.','bad')}
  finally{cmAuthBusy(false)}
 }
 async function cmSignOut(){
@@ -760,6 +782,61 @@ const cmAccountHtml=()=>_authUser?(()=>{
  return `<div class="cm-account"><details class="cm-user-menu"><summary><span class="cm-user-avatar">${esc(ini)}</span><span class="cm-user-copy"><span class="cm-user-name">${esc(name)}</span><span class="cm-account-email">${esc(email)}</span></span><span>⌃</span></summary><div class="cm-user-pop"><button class="btn ghost sm" onclick="cmSwitchUser()">⇄ Alterar usuário</button><button class="btn ghost sm" onclick="cmSignOut()">↪ Sair da conta</button></div></details></div>`
 })():'';
 const cmSettingsPayload=(clubId,state)=>({club_id:clubId,fee_value:+state.feeValue||0,fee_day:+state.feeDay||10,initial_balance:+state.initial||0,initial_account:state.initialAcc||null,rating_weights:state.weights||{coach:50,staff:30,players:20},min_rated:+state.minRated||3,lists:state.lists||{},extra:{hiddenRk:state.hiddenRk||[],rankOut:state.rankOut||[]}});
+function cmShowAccessGate(req){
+ _accessRequest=req||null;const g=$('#cmAccessGate'),t=$('#cmAccessText');if(!g)return;
+ const st=req&&req.status||'pending';
+ if(t)t.textContent=st==='rejected'
+   ?'Seu pedido de acesso não foi aprovado. Fale com o administrador do clube para revisar seu cadastro.'
+   :'Seu cadastro foi recebido. Confirme seu e-mail no Gmail/e-mail e aguarde a aprovação do administrador. Quando o acesso for liberado, entre novamente.';
+ g.hidden=false
+}
+function cmHideAccessGate(){const g=$('#cmAccessGate');if(g)g.hidden=true}
+async function cmLoadOwnAccessRequest(){
+ if(!sb||!_authUser)return null;
+ const {data,error}=await sb.from('cm_access_requests').select('id,user_id,email,full_name,status,requested_at,reviewed_at,assigned_club_id,assigned_role,note').eq('user_id',_authUser.id).maybeSingle();
+ if(error)throw error;_accessRequest=data||null;return _accessRequest
+}
+async function cmLoadAccessRequests(){
+ if(!sb||!isActualAdmin()){_accessRequests=[];return[]}
+ const {data,error}=await sb.from('cm_access_requests').select('id,user_id,email,full_name,status,requested_at,reviewed_at,assigned_club_id,assigned_role,note').eq('status','pending').order('requested_at',{ascending:true});
+ if(error)throw error;_accessRequests=data||[];return _accessRequests
+}
+async function cmApproveAccess(id){
+ if(!isActualAdmin())return note('Somente Presidente ou Vice-presidente podem aprovar acessos.');
+ const r=_accessRequests.find(x=>x.id===id);if(!r)return;
+ const roles=Object.keys(S.perms||{}),clubs=Object.entries(DB.clubs).map(([id,st])=>[id,st.club.name+(st.club.demo?' · Demonstração':'')]);
+ modal('Aprovar usuário',[
+   {k:'club',l:'Clube',t:'sel',o:clubs,v:DB.cur},
+   {k:'role',l:'Função',t:'sel',o:roles,v:'Jogador'}
+ ],v=>{(async()=>{try{
+   const clubState=DB.clubs[v.club];if(!clubState)throw new Error('Clube inválido');
+   const rolePerms=clubState.perms&&clubState.perms[v.role]?clubState.perms[v.role]:{};
+   const {error:memErr}=await sb.from('cm_members').upsert({
+     club_id:v.club,user_id:r.user_id,role:v.role,status:'active',
+     display_name:r.full_name||r.email,permissions:{}
+   },{onConflict:'club_id,user_id'});
+   if(memErr)throw memErr;
+   const {error:reqErr}=await sb.from('cm_access_requests').update({
+     status:'approved',reviewed_at:new Date().toISOString(),reviewed_by:_authUser.id,
+     assigned_club_id:v.club,assigned_role:v.role,note:null
+   }).eq('id',r.id);
+   if(reqErr)throw reqErr;
+   await cmLoadAccessRequests();await cmLoadClubMembers(DB.cur);render();toast('Usuário aprovado e vinculado ao clube como '+v.role+'.')
+  }catch(e){console.error(e);note('Não consegui aprovar este usuário. Tente novamente.')}})()})
+}
+async function cmRejectAccess(id){
+ if(!isActualAdmin())return;
+ const r=_accessRequests.find(x=>x.id===id);if(!r)return;
+ ask('Recusar o acesso de <b>'+esc(r.full_name||r.email)+'</b>?',()=>{(async()=>{try{
+   const {error}=await sb.from('cm_access_requests').update({status:'rejected',reviewed_at:new Date().toISOString(),reviewed_by:_authUser.id}).eq('id',id);
+   if(error)throw error;await cmLoadAccessRequests();render();toast('Pedido de acesso recusado.')
+  }catch(e){console.error(e);note('Não consegui recusar este pedido.')}})()},'Recusar','RECUSAR ACESSO')
+}
+function accessRequestsPanel(){
+ if(!isActualAdmin())return'';
+ const rows=_accessRequests.map(r=>`<tr><td><b>${esc(r.full_name||'Sem nome')}</b><div class="mute" style="font-size:12px">${esc(r.email)}</div></td><td>${new Date(r.requested_at).toLocaleString('pt-BR')}</td><td><div class="cm-pending-actions"><button class="btn sm" onclick="cmApproveAccess('${r.id}')">Aprovar</button><button class="btn ghost sm" onclick="cmRejectAccess('${r.id}')">Recusar</button></div></td></tr>`).join('');
+ return `<div class="card cm-pending" style="margin-top:12px"><div class="row"><div><h3 style="margin:0">Usuários pendentes</h3><p class="mute" style="margin:4px 0 0">Apenas usuários aprovados podem acessar o sistema.</p></div><span class="sp"></span>${_accessRequests.length?`<span class="cm-request-badge">${_accessRequests.length}</span>`:''}</div>${rows?`<div class="wrap" style="margin-top:10px"><table class="tbl"><tr><th>Usuário</th><th>Solicitado em</th><th>Ações</th></tr>${rows}</table></div>`:'<div class="empty">Nenhum usuário aguardando aprovação.</div>'}</div>`
+}
 async function cmBootstrapClub(localState,opts={}){
  const st=localState&&localState.club?localState:blank(opts.isDemo?'Meu Clube':'Novo Clube');normalizePerms(st);const cl=st.club||{};
  if(opts.isDemo){cl.name='Meu Clube';cl.sigla='MC';cl.demo=true}
@@ -833,7 +910,7 @@ async function cmLoadRemoteDB(){
  const {data:members,error:memErr}=await sb.from('cm_members').select('id,club_id,user_id,role,status,display_name,permissions').eq('user_id',_authUser.id).eq('status','active');
  if(memErr)throw memErr;
  _members=members||[];
- if(!_members.length){_actualRole='Presidente';return await cmBootstrapAccount();}
+ if(!_members.length){_actualRole='';await cmLoadOwnAccessRequest();return null;}
  const ids=_members.map(m=>m.club_id);
  const [{data:clubs,error:clubErr},{data:states,error:stateErr}]=await Promise.all([
   sb.from('cm_clubs').select('id,name,sigla,brand_color,accent_color,logo_path,is_demo').in('id',ids).is('deleted_at',null),
@@ -900,7 +977,9 @@ async function loadSupabase(){
  try{
   await sb.from('cm_profiles').upsert({user_id:_authUser.id,full_name:_authUser.email?String(_authUser.email).split('@')[0]:null},{onConflict:'user_id'});
   const remote=await cmLoadRemoteDB();
-  setDB(remote);Object.values(DB.clubs).forEach(cl=>normalizePerms(cl));await cmEnsureDemoClub();if(!DB.cur||!DB.clubs[DB.cur])DB.cur=Object.keys(DB.clubs)[0];S=DB.clubs[DB.cur];await cmLoadClubMembers(DB.cur);
+  if(!remote){cmShowAccessGate(_accessRequest);return}
+  cmHideAccessGate();setDB(remote);Object.values(DB.clubs).forEach(cl=>normalizePerms(cl));await cmEnsureDemoClub();if(!DB.cur||!DB.clubs[DB.cur])DB.cur=Object.keys(DB.clubs)[0];S=DB.clubs[DB.cur];await cmLoadClubMembers(DB.cur);
+  if(isActualAdmin())await cmLoadAccessRequests();
   try{localStorage.setItem(_cacheKey,JSON.stringify(DB));if(_hadLegacy)localStorage.setItem('cm_v2:migrated_to',_authUser.id)}catch(e){}
   render();
  }catch(e){console.warn('Supabase load falhou:',e);cmAuthMsg('Falha ao carregar o backend do clube. Atualize a página e tente novamente.','bad');_sbLoaded=false}
@@ -1160,7 +1239,7 @@ function render(){if(!can(view))view='dashboard';shell();const V={dashboard,part
  $('#main').innerHTML=sim+ro+V();post()}
 const head=(t,extra='')=>`<div class="top"><h1>${t}</h1><div class="row">${extra}</div></div>`;
 const tabs=(list,cur,fn)=>`<div class="tabs">${list.map(([k,l])=>`<button class="${cur===k?'on':''}" onclick="${fn}('${k}')">${l}</button>`).join('')}</div>`;
-function menu(){return head('Menu')+`<div class="mn-g">${NAV.filter(n=>!MOB.includes(n[0])&&can(n[0])).map(([k,l])=>`<button type="button" class="mn-t" onclick="go('${k}')">${ic(k)}<span>${l}</span></button>`).join('')}</div><div class="card mn-sw" style="margin-top:12px;background:var(--brand);color:#fff">${switchers()}</div>`}
+function menu(){return head('Menu')+`<div class="mn-g">${NAV.filter(n=>!MOB.includes(n[0])&&can(n[0])).map(([k,l])=>`<button type="button" class="mn-t" onclick="go('${k}')">${ic(k)}<span>${l}</span></button>`).join('')}</div><div class="card mn-sw" style="margin-top:12px;background:var(--brand);color:#fff">${switchers()}${cmAccountHtml()}</div>`}
 
 /* dashboard */
 function dashboard(){
@@ -1809,7 +1888,7 @@ function config(){
  <div class="grid g3" style="margin-top:12px"><div class="card"><h3>Regras</h3><p class="mute">Pontos por vitória, empate e derrota e critérios de desempate ficam em cada competição (Competições → Regras e times). O aproveitamento do Dashboard usa 3 · 1 · 0.</p></div>
  <div class="card"><h3>Mensalidade</h3><label>Valor (R$)</label><input type="number" style="width:100%" value="${S.feeValue}" onchange="S.feeValue=+this.value;save()"><label>Dia do vencimento</label><input type="number" min="1" max="28" style="width:100%" value="${S.feeDay||10}" onchange="S.feeDay=Math.min(28,Math.max(1,+this.value||10));save()"><label>Participantes</label><button class="btn ghost sm" onclick="feeParts()">Escolher (${feePl().length} de ${sched().length})</button></div>
  <div class="card"><h3>Saldo de caixa</h3><label>Saldo inicial (R$)</label><input type="number" style="width:100%" value="${S.initial}" onchange="S.initial=+this.value;save()"><label>Conta do saldo inicial</label><select onchange="S.initialAcc=this.value;save()">${['Conta Pix','Caixa físico','Conta bancária'].map(o=>`<option ${o===(S.initialAcc||'Conta Pix')?'selected':''}>${o}</option>`).join('')}</select><p class="mute">O saldo atual é calculado a partir dos lançamentos pagos. Para corrigi-lo, faça um lançamento.</p></div></div>
- ${isActualAdmin()?permPanel():''}
+ ${isActualAdmin()?accessRequestsPanel()+permPanel():''}
  <div class="card row" style="margin-top:12px"><span class="sp mute">Dados do clube atual</span><button class="btn ghost sm" onclick="askReset()">Restaurar dados de exemplo</button>${S.club.demo?'<span class="tag neu">Clube de demonstração protegido</span>':Object.keys(DB.clubs).length>1?`<button class="btn ghost sm" onclick="delClub()">Excluir este clube</button>`:''}</div>
 `}
 function feeParts(){const d=$('#dlg');d.innerHTML=`<h2>Participantes da mensalidade</h2>${sched().map(p=>`<label style="display:flex;gap:8px;align-items:center;color:var(--ink);font-size:15px;margin:6px 0"><input type="checkbox" style="width:auto" data-p="${p.id}" ${(S.feeOut||[]).includes(p.id)?'':'checked'}>${esc(p.nome)}</label>`).join('')}<div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn" id="mdone">Salvar</button></div>`;$('#mdone').onclick=()=>{S.feeOut=[...d.querySelectorAll('[data-p]')].filter(x=>!x.checked).map(x=>+x.dataset.p);save();d.close();render()};d.showModal()}
