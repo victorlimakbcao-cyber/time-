@@ -581,6 +581,7 @@ img.sh.shk{opacity:1}
 .cm-auth-card label{color:#5e7267}.cm-auth-card input{background:#f5f7f5;color:#14231c}
 .cm-auth-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}.cm-auth-actions .btn{width:100%}
 .cm-auth-actions.single{grid-template-columns:1fr}.cm-auth-link{border:0;background:none;color:#1769d2;text-decoration:underline;cursor:pointer;padding:7px;font-size:13px}.cm-auth-switch{display:block;width:100%;margin-top:8px}
+.cm-auth-panel[hidden]{display:none}.cm-pass{position:relative}.cm-pass input{padding-right:44px}.cm-pass-eye{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:34px;height:34px;border:0;background:transparent;cursor:pointer;font-size:18px;color:#496257;border-radius:8px}.cm-pass-eye:hover{background:#eef5f0}.cm-code{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:8px 0 4px}.cm-code input{text-align:center;font-size:20px;font-weight:800;padding:10px 4px}.cm-auth-help{font-size:12px;color:#687b70;line-height:1.45;margin-top:8px}
 .cm-auth-name-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.cm-auth-sep{display:flex;align-items:center;gap:8px;margin:10px 0;color:#809087;font-size:12px}.cm-auth-sep:before,.cm-auth-sep:after{content:"";height:1px;background:#dde5df;flex:1}
 .cm-auth-msg{min-height:20px;margin-top:10px;font-size:13px}.cm-auth-msg.bad{color:#c0392b}.cm-auth-msg.ok{color:#1f8a55}
 .cm-account{margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.22);font-size:12px}
@@ -618,34 +619,67 @@ img.sh.shk{opacity:1}
   <div class="cm-auth-card">
     <div class="cm-auth-brand"><div class="shield">CM</div><b>Clube Manager</b></div>
     <h1 id="cmAuthTitle">Acesse sua conta</h1>
-    <p id="cmAuthSub">Entre para sincronizar os dados do clube com segurança.</p>
+    <p id="cmAuthSub">Entre com seu e-mail e senha.</p>
 
-    <div id="cmRecentAccounts" class="cm-recent"></div>
-    <button id="cmOtherEmail" class="cm-auth-link cm-auth-switch" type="button" onclick="cmUseOtherEmail()">＋ Usar outro e-mail</button>
-
-    <div id="cmSignupNames" class="cm-auth-name-row" hidden>
-      <div><label for="cmAuthFirst">Nome</label><input id="cmAuthFirst" type="text" autocomplete="given-name" placeholder="Victor"></div>
-      <div><label for="cmAuthLast">Sobrenome</label><input id="cmAuthLast" type="text" autocomplete="family-name" placeholder="Lima"></div>
+    <div id="cmPanelSignin" class="cm-auth-panel">
+      <div id="cmRecentAccounts" class="cm-recent"></div>
+      <button class="cm-auth-link cm-auth-switch" type="button" onclick="cmUseOtherEmail()">＋ Usar outro e-mail</button>
+      <label for="cmAuthEmail">E-mail</label>
+      <input id="cmAuthEmail" type="email" autocomplete="email" inputmode="email" placeholder="seu@email.com">
+      <label for="cmAuthPassword">Senha</label>
+      <div class="cm-pass"><input id="cmAuthPassword" type="password" autocomplete="current-password" minlength="6" placeholder="Sua senha"><button class="cm-pass-eye" type="button" aria-label="Mostrar ou ocultar senha" onclick="cmTogglePassword('cmAuthPassword',this)">◉</button></div>
+      <button class="cm-auth-link cm-auth-switch" type="button" onclick="cmAuthSetMode('forgot')">Esqueci minha senha</button>
+      <div class="cm-auth-actions single"><button class="btn" id="cmAuthLogin" type="button" onclick="cmAuthSubmit('signin')">Entrar</button></div>
+      <div class="cm-auth-sep">ou</div>
+      <button class="btn ghost" id="cmAuthToSignup" type="button" style="width:100%" onclick="cmAuthSetMode('signup')">Criar conta</button>
     </div>
 
-    <label for="cmAuthEmail">E-mail</label>
-    <input id="cmAuthEmail" type="email" autocomplete="email" inputmode="email" placeholder="seu@email.com">
-    <label for="cmAuthPassword">Senha</label>
-    <input id="cmAuthPassword" type="password" autocomplete="current-password" minlength="6" placeholder="Mínimo de 6 caracteres">
-
-    <div id="cmConfirmWrap" hidden>
-      <label for="cmAuthConfirm">Confirmar senha</label>
-      <input id="cmAuthConfirm" type="password" autocomplete="new-password" minlength="6" placeholder="Digite a senha novamente">
+    <div id="cmPanelSignup" class="cm-auth-panel" hidden>
+      <div class="cm-auth-name-row">
+        <div><label for="cmAuthFirst">Nome</label><input id="cmAuthFirst" type="text" autocomplete="given-name" placeholder="Victor"></div>
+        <div><label for="cmAuthLast">Sobrenome</label><input id="cmAuthLast" type="text" autocomplete="family-name" placeholder="Lima"></div>
+      </div>
+      <label for="cmSignupEmail">E-mail / Gmail</label>
+      <input id="cmSignupEmail" type="email" autocomplete="email" inputmode="email" placeholder="seu@gmail.com">
+      <label for="cmSignupPassword">Senha</label>
+      <div class="cm-pass"><input id="cmSignupPassword" type="password" autocomplete="new-password" minlength="6" placeholder="Mínimo de 6 caracteres"><button class="cm-pass-eye" type="button" aria-label="Mostrar ou ocultar senha" onclick="cmTogglePassword('cmSignupPassword',this)">◉</button></div>
+      <label for="cmSignupConfirm">Confirmar senha</label>
+      <div class="cm-pass"><input id="cmSignupConfirm" type="password" autocomplete="new-password" minlength="6" placeholder="Digite a senha novamente"><button class="cm-pass-eye" type="button" aria-label="Mostrar ou ocultar senha" onclick="cmTogglePassword('cmSignupConfirm',this)">◉</button></div>
+      <p class="cm-auth-help">Após criar a conta, você confirma o e-mail com um código de 6 dígitos. Só depois seu cadastro aparece para aprovação do Presidente/Vice-presidente.</p>
+      <div class="cm-auth-actions single"><button class="btn" id="cmAuthSignup" type="button" onclick="cmAuthSubmit('signup')">Continuar</button></div>
+      <button class="cm-auth-link cm-auth-switch" type="button" onclick="cmAuthSetMode('signin')">Já tenho uma conta · Entrar</button>
     </div>
 
-    <div id="cmLoginActions" class="cm-auth-actions">
-      <button class="btn" id="cmAuthLogin" type="button" onclick="cmAuthSubmit('signin')">Entrar</button>
-      <button class="btn ghost" id="cmAuthToSignup" type="button" onclick="cmAuthSetMode('signup')">Criar conta</button>
+    <div id="cmPanelVerify" class="cm-auth-panel" hidden>
+      <h3 style="margin:0 0 6px">Verifique seu e-mail</h3>
+      <p class="cm-auth-help">Enviamos um código de 6 dígitos para <b id="cmVerifyEmail"></b>. Digite o código abaixo.</p>
+      <div id="cmSignupCode" class="cm-code"><input id="cmCode0" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="cmCodeMove(this,0,'cmCode')" onkeydown="cmCodeBack(event,0,'cmCode')"><input id="cmCode1" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="cmCodeMove(this,1,'cmCode')" onkeydown="cmCodeBack(event,1,'cmCode')"><input id="cmCode2" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="cmCodeMove(this,2,'cmCode')" onkeydown="cmCodeBack(event,2,'cmCode')"><input id="cmCode3" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="cmCodeMove(this,3,'cmCode')" onkeydown="cmCodeBack(event,3,'cmCode')"><input id="cmCode4" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="cmCodeMove(this,4,'cmCode')" onkeydown="cmCodeBack(event,4,'cmCode')"><input id="cmCode5" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="cmCodeMove(this,5,'cmCode')" onkeydown="cmCodeBack(event,5,'cmCode')"></div>
+      <button class="cm-auth-link cm-auth-switch" type="button" onclick="cmResendSignupCode()">Não recebeu? Reenviar código</button>
+      <div class="cm-auth-actions single"><button class="btn" type="button" onclick="cmVerifySignupCode()">Confirmar código</button></div>
+      <button class="cm-auth-link cm-auth-switch" type="button" onclick="cmAuthSetMode('signin')">Voltar para o login</button>
     </div>
-    <div id="cmSignupActions" class="cm-auth-actions single" hidden>
-      <button class="btn" id="cmAuthSignup" type="button" onclick="cmAuthSubmit('signup')">Criar conta</button>
-      <button class="cm-auth-link" type="button" onclick="cmAuthSetMode('signin')">Voltar para o login</button>
+
+    <div id="cmPanelForgot" class="cm-auth-panel" hidden>
+      <h3 style="margin:0 0 6px">Recuperar senha</h3>
+      <p class="cm-auth-help">Digite o Gmail/e-mail da sua conta para receber o código de recuperação.</p>
+      <label for="cmRecoveryEmail">E-mail</label>
+      <input id="cmRecoveryEmail" type="email" autocomplete="email" inputmode="email" placeholder="seu@gmail.com">
+      <div class="cm-auth-actions single"><button class="btn" type="button" onclick="cmSendRecoveryCode()">Enviar código</button></div>
+      <button class="cm-auth-link cm-auth-switch" type="button" onclick="cmAuthSetMode('signin')">Voltar para o login</button>
     </div>
+
+    <div id="cmPanelRecovery" class="cm-auth-panel" hidden>
+      <h3 style="margin:0 0 6px">Redefinir senha</h3>
+      <p class="cm-auth-help">Digite o código enviado para <b id="cmRecoveryEmailLabel"></b> e escolha uma nova senha.</p>
+      <div id="cmRecoveryCode" class="cm-code"><input id="cmRecCode0" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="cmCodeMove(this,0,'cmRecCode')" onkeydown="cmCodeBack(event,0,'cmRecCode')"><input id="cmRecCode1" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="cmCodeMove(this,1,'cmRecCode')" onkeydown="cmCodeBack(event,1,'cmRecCode')"><input id="cmRecCode2" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="cmCodeMove(this,2,'cmRecCode')" onkeydown="cmCodeBack(event,2,'cmRecCode')"><input id="cmRecCode3" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="cmCodeMove(this,3,'cmRecCode')" onkeydown="cmCodeBack(event,3,'cmRecCode')"><input id="cmRecCode4" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="cmCodeMove(this,4,'cmRecCode')" onkeydown="cmCodeBack(event,4,'cmRecCode')"><input id="cmRecCode5" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="cmCodeMove(this,5,'cmRecCode')" onkeydown="cmCodeBack(event,5,'cmRecCode')"></div>
+      <label for="cmNewPassword">Nova senha</label>
+      <div class="cm-pass"><input id="cmNewPassword" type="password" autocomplete="new-password" minlength="6" placeholder="Nova senha"><button class="cm-pass-eye" type="button" aria-label="Mostrar ou ocultar senha" onclick="cmTogglePassword('cmNewPassword',this)">◉</button></div>
+      <label for="cmNewPasswordConfirm">Confirmar nova senha</label>
+      <div class="cm-pass"><input id="cmNewPasswordConfirm" type="password" autocomplete="new-password" minlength="6" placeholder="Repita a nova senha"><button class="cm-pass-eye" type="button" aria-label="Mostrar ou ocultar senha" onclick="cmTogglePassword('cmNewPasswordConfirm',this)">◉</button></div>
+      <div class="cm-auth-actions single"><button class="btn" type="button" onclick="cmCompleteRecovery()">Redefinir senha</button></div>
+      <button class="cm-auth-link cm-auth-switch" type="button" onclick="cmSendRecoveryCode()">Reenviar código</button>
+    </div>
+
     <div id="cmAuthMsg" class="cm-auth-msg" role="status" aria-live="polite"></div>
   </div>
 </div>
@@ -736,7 +770,7 @@ const SUPABASE_KEY='sb_publishable_QObRfLJxDi9Kh8-nNLoJYA_pQ3feKBY';
 const sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
 const LEGACY_CACHE_KEY='cm_v2';
 const _legacyRaw=localStorage.getItem(LEGACY_CACHE_KEY),_hadLegacy=!!_legacyRaw;
-let _cacheKey=LEGACY_CACHE_KEY,_authUser=null,_sbTimer=null,_sbBusy=false,_sbLoaded=false,_authMode='signin',_memberFilter='',_members=[],_clubMembers=[],_accessRequests=[],_accessRequest=null,_actualRole='Presidente',_permRole='Staff',_permMode='role',_permUser='',_userRoleDraft='',_userPermDraft=null,_userPermDirty=false;
+let _cacheKey=LEGACY_CACHE_KEY,_authUser=null,_sbTimer=null,_sbBusy=false,_sbLoaded=false,_authMode='signin',_pendingSignupEmail='',_recoveryEmail='',_memberFilter='',_members=[],_clubMembers=[],_accessRequests=[],_accessRequest=null,_actualRole='Presidente',_permRole='Staff',_permMode='role',_permUser='',_userRoleDraft='',_userPermDraft=null,_userPermDirty=false;
 let DB;try{DB=_legacyRaw?JSON.parse(_legacyRaw):null}catch(e){}
 if(!DB||!DB.clubs)DB={cur:'c1',role:'Presidente',clubs:{c1:seed()}};
 let S=DB.clubs[DB.cur];
@@ -753,63 +787,93 @@ function renderRememberedAccounts(){
  const box=$('#cmRecentAccounts');if(!box)return;const a=recentAccounts();
  box.innerHTML=_authMode==='signin'&&a.length?'<div class="cm-recent-title">Contas usadas neste dispositivo</div>'+a.map(email=>`<button class="cm-recent-btn" type="button" onclick="chooseRememberedAccount('${esc(email)}')"><span class="cm-recent-dot">${esc(email.slice(0,2).toUpperCase())}</span><span>${esc(email)}</span></button>`).join(''):''
 }
+function cmTogglePassword(id,btn){const i=document.getElementById(id);if(!i)return;i.type=i.type==='password'?'text':'password';if(btn)btn.textContent=i.type==='password'?'◉':'◎'}
+function cmCodeMove(el,index,prefix){el.value=el.value.replace(/\D/g,'').slice(-1);if(el.value&&index<5){const n=document.getElementById(prefix+(index+1));if(n)n.focus()}}
+function cmCodeBack(e,index,prefix){if(e.key==='Backspace'&&!e.target.value&&index>0){const p=document.getElementById(prefix+(index-1));if(p)p.focus()}}
+function cmReadCode(prefix){return Array.from({length:6},(_,i)=>(document.getElementById(prefix+i)?.value||'')).join('')}
+function cmClearCode(prefix){for(let i=0;i<6;i++){const e=document.getElementById(prefix+i);if(e)e.value=''}}
 function cmAuthSetMode(mode){
- _authMode=mode==='signup'?'signup':'signin';
- const signup=_authMode==='signup';
- const title=$('#cmAuthTitle'),sub=$('#cmAuthSub'),names=$('#cmSignupNames'),confirm=$('#cmConfirmWrap'),la=$('#cmLoginActions'),sa=$('#cmSignupActions'),other=$('#cmOtherEmail'),pass=$('#cmAuthPassword');
- if(title)title.textContent=signup?'Criar conta':'Acesse sua conta';
- if(sub)sub.textContent=signup?'Solicite acesso ao sistema. Após confirmar seu e-mail, o cadastro ficará aguardando aprovação do administrador.':'Entre para sincronizar os dados do clube com segurança.';
- if(names)names.hidden=!signup;if(confirm)confirm.hidden=!signup;if(la)la.hidden=signup;if(sa)sa.hidden=!signup;if(other)other.hidden=signup;
- if(pass)pass.autocomplete=signup?'new-password':'current-password';
- if(!signup){const cf=$('#cmAuthConfirm');if(cf)cf.value=''}
+ const allowed=['signin','signup','verify','forgot','recovery'];_authMode=allowed.includes(mode)?mode:'signin';
+ const map={signin:'cmPanelSignin',signup:'cmPanelSignup',verify:'cmPanelVerify',forgot:'cmPanelForgot',recovery:'cmPanelRecovery'};
+ document.querySelectorAll('.cm-auth-panel').forEach(x=>x.hidden=true);const p=document.getElementById(map[_authMode]);if(p)p.hidden=false;
+ const title=$('#cmAuthTitle'),sub=$('#cmAuthSub');
+ const labels={
+  signin:['Acesse sua conta','Entre com seu e-mail e senha.'],
+  signup:['Criar conta','Preencha seus dados para solicitar acesso ao Clube Manager.'],
+  verify:['Código de confirmação','Confirme seu e-mail antes de entrar na fila de aprovação.'],
+  forgot:['Esqueci minha senha','Recupere sua senha sem perder seus clubes, funções ou histórico.'],
+  recovery:['Redefinir senha','Confirme o código recebido e cadastre uma nova senha.']
+ };
+ if(title)title.textContent=labels[_authMode][0];if(sub)sub.textContent=labels[_authMode][1];
  cmAuthMsg('');renderRememberedAccounts()
 }
-function cmUseOtherEmail(){
- cmAuthSetMode('signin');const e=$('#cmAuthEmail'),p=$('#cmAuthPassword');if(e){e.value='';e.focus()}if(p)p.value='';cmAuthMsg('Digite o e-mail e a senha da outra conta.')
-}
-function chooseRememberedAccount(email){
- cmAuthSetMode('signin');const e=$('#cmAuthEmail'),p=$('#cmAuthPassword');if(e)e.value=email||'';if(p){p.value='';p.focus()}cmAuthMsg('Digite a senha dessa conta para continuar.')
-}
+function cmUseOtherEmail(){cmAuthSetMode('signin');const e=$('#cmAuthEmail'),p=$('#cmAuthPassword');if(e){e.value='';e.focus()}if(p)p.value='';cmAuthMsg('Digite o e-mail e a senha da outra conta.')}
+function chooseRememberedAccount(email){cmAuthSetMode('signin');const e=$('#cmAuthEmail'),p=$('#cmAuthPassword');if(e)e.value=email||'';if(p){p.value='';p.focus()}cmAuthMsg('Digite a senha dessa conta para continuar.')}
 function cmResetSessionUi(){
  _authUser=null;_members=[];_clubMembers=[];_accessRequests=[];_accessRequest=null;_actualRole='Presidente';_permUser='';_userPermDraft=null;_userPermDirty=false;_sbLoaded=false;
- const p=$('#cmAuthPassword');if(p)p.value='';const cf=$('#cmAuthConfirm');if(cf)cf.value='';
- const g=$('#cmAuthGate');if(g)g.hidden=false;const ag=$('#cmAccessGate');if(ag)ag.hidden=true;
- cmAuthSetMode('signin');renderRememberedAccounts()
+ const g=$('#cmAuthGate');if(g)g.hidden=false;const ag=$('#cmAccessGate');if(ag)ag.hidden=true;cmAuthSetMode('signin')
 }
 function cmAuthShow(session){
- _authUser=session&&session.user?session.user:null;
- const g=$('#cmAuthGate');if(g)g.hidden=!!_authUser;
+ _authUser=session&&session.user?session.user:null;const g=$('#cmAuthGate');if(g)g.hidden=!!_authUser;
  if(_authUser){_cacheKey=LEGACY_CACHE_KEY+':'+_authUser.id;rememberAccount(_authUser.email);cmAuthMsg('')}
- else{cmAuthSetMode('signin');renderRememberedAccounts()}
+ else cmAuthSetMode('signin')
 }
 async function cmAuthSubmit(mode){
  if(!sb)return cmAuthMsg('Não foi possível iniciar a conexão com o Supabase.','bad');
- const first=($('#cmAuthFirst')?.value||'').trim(),last=($('#cmAuthLast')?.value||'').trim(),email=($('#cmAuthEmail')?.value||'').trim().toLowerCase(),password=$('#cmAuthPassword')?.value||'',confirm=$('#cmAuthConfirm')?.value||'';
- if(mode==='signup'&&first.length<2)return cmAuthMsg('Informe seu nome.','bad');
- if(mode==='signup'&&last.length<2)return cmAuthMsg('Informe seu sobrenome.','bad');
- if(!email)return cmAuthMsg('Informe seu e-mail.','bad');
- if(password.length<6)return cmAuthMsg('A senha precisa ter pelo menos 6 caracteres.','bad');
- if(mode==='signup'&&password!==confirm)return cmAuthMsg('As duas senhas precisam ser iguais.','bad');
- cmAuthBusy(true);cmAuthMsg(mode==='signup'?'Enviando seu cadastro...':'Entrando...');
+ if(mode==='signin'){
+  const email=($('#cmAuthEmail')?.value||'').trim().toLowerCase(),password=$('#cmAuthPassword')?.value||'';
+  if(!email)return cmAuthMsg('Informe seu e-mail.','bad');if(password.length<6)return cmAuthMsg('Informe sua senha.','bad');
+  cmAuthBusy(true);cmAuthMsg('Entrando...');
+  try{
+   const {data,error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;
+   rememberAccount(email);if(data.session){cmAuthShow(data.session);_sbLoaded=false;await loadSupabase();render()}
+  }catch(e){const msg=String(e&&e.message||'');if(/invalid login credentials/i.test(msg))cmAuthMsg('E-mail ou senha incorretos.','bad');else if(/email not confirmed/i.test(msg))cmAuthMsg('Confirme seu e-mail com o código enviado antes de entrar.','bad');else cmAuthMsg(msg||'Não foi possível entrar.','bad')}
+  finally{cmAuthBusy(false)};return
+ }
+ const first=($('#cmAuthFirst')?.value||'').trim(),last=($('#cmAuthLast')?.value||'').trim(),email=($('#cmSignupEmail')?.value||'').trim().toLowerCase(),password=$('#cmSignupPassword')?.value||'',confirm=$('#cmSignupConfirm')?.value||'';
+ if(first.length<2)return cmAuthMsg('Informe seu nome.','bad');if(last.length<2)return cmAuthMsg('Informe seu sobrenome.','bad');if(!email)return cmAuthMsg('Informe seu Gmail/e-mail.','bad');
+ if(password.length<6)return cmAuthMsg('A senha precisa ter pelo menos 6 caracteres.','bad');if(password!==confirm)return cmAuthMsg('As duas senhas precisam ser iguais.','bad');
+ cmAuthBusy(true);cmAuthMsg('Criando sua conta...');
  try{
   const fullName=(first+' '+last).trim();
-  const res=mode==='signup'
-   ?await sb.auth.signUp({email,password,options:{data:{first_name:first,last_name:last,full_name:fullName},emailRedirectTo:location.origin}})
-   :await sb.auth.signInWithPassword({email,password});
-  if(res.error)throw res.error;
-  rememberAccount(email);
-  if(mode==='signup'&&!res.data.session){
-   cmAuthMsg('Cadastro recebido. Enviamos um e-mail de confirmação. Depois de confirmar, aguarde a liberação do Presidente ou Vice-presidente.','ok');
-   return
-  }
-  if(res.data.session){cmAuthShow(res.data.session);_sbLoaded=false;await loadSupabase();render()}
- }catch(e){
-  const msg=String(e&&e.message||'');
-  if(/rate limit/i.test(msg))cmAuthMsg('O serviço de e-mail atingiu o limite temporário. Aguarde alguns minutos antes de tentar criar outra conta.','bad');
-  else if(/invalid login credentials/i.test(msg))cmAuthMsg('E-mail ou senha incorretos. Se esta conta ainda não existe, use “Criar conta”.','bad');
-  else if(/email not confirmed/i.test(msg))cmAuthMsg('Confirme seu e-mail antes de entrar. Verifique sua caixa de entrada e spam.','bad');
-  else cmAuthMsg(msg||'Não foi possível autenticar.','bad')
- }finally{cmAuthBusy(false)}
+  const {data,error}=await sb.auth.signUp({email,password,options:{data:{first_name:first,last_name:last,full_name:fullName},emailRedirectTo:location.origin}});
+  if(error)throw error;rememberAccount(email);_pendingSignupEmail=email;
+  if(data.session){await sb.auth.signOut({scope:'local'});cmAuthMsg('Seu e-mail já estava confirmado. Entre novamente para continuar.','ok');cmAuthSetMode('signin');return}
+  const lab=$('#cmVerifyEmail');if(lab)lab.textContent=email;cmClearCode('cmCode');cmAuthSetMode('verify');cmAuthMsg('Digite o código de 6 dígitos recebido no e-mail.','ok')
+ }catch(e){const msg=String(e&&e.message||'');if(/rate limit/i.test(msg))cmAuthMsg('O serviço de e-mail atingiu o limite temporário. Aguarde alguns minutos e tente novamente.','bad');else cmAuthMsg(msg||'Não foi possível criar a conta.','bad')}
+ finally{cmAuthBusy(false)}
+}
+async function cmVerifySignupCode(){
+ const email=_pendingSignupEmail,token=cmReadCode('cmCode');if(!email)return cmAuthSetMode('signup');if(token.length!==6)return cmAuthMsg('Digite os 6 números do código.','bad');
+ cmAuthMsg('Confirmando código...');
+ try{
+  const {data,error}=await sb.auth.verifyOtp({email,token,type:'email'});if(error)throw error;
+  if(data.session){cmAuthShow(data.session);_sbLoaded=false;await loadSupabase();render()}
+ }catch(e){cmAuthMsg('Código inválido ou expirado. Confira o e-mail e tente novamente.','bad')}
+}
+async function cmResendSignupCode(){
+ if(!_pendingSignupEmail)return cmAuthSetMode('signup');cmAuthMsg('Reenviando código...');
+ try{const {error}=await sb.auth.resend({type:'signup',email:_pendingSignupEmail,options:{emailRedirectTo:location.origin}});if(error)throw error;cmAuthMsg('Código reenviado. Verifique sua caixa de entrada e spam.','ok')}
+ catch(e){const msg=String(e&&e.message||'');cmAuthMsg(/rate limit/i.test(msg)?'Aguarde alguns minutos antes de pedir outro código.':msg||'Não foi possível reenviar o código.','bad')}
+}
+async function cmSendRecoveryCode(){
+ const email=($('#cmRecoveryEmail')?.value||_recoveryEmail||'').trim().toLowerCase();if(!email)return cmAuthMsg('Informe o e-mail da sua conta.','bad');
+ _recoveryEmail=email;cmAuthMsg('Enviando código de recuperação...');
+ try{
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin});if(error)throw error;
+  const l=$('#cmRecoveryEmailLabel');if(l)l.textContent=email;cmClearCode('cmRecCode');cmAuthSetMode('recovery');cmAuthMsg('Confira o e-mail e digite o código de recuperação.','ok')
+ }catch(e){const msg=String(e&&e.message||'');cmAuthMsg(/rate limit/i.test(msg)?'Aguarde alguns minutos antes de pedir outro código.':msg||'Não foi possível enviar a recuperação.','bad')}
+}
+async function cmCompleteRecovery(){
+ const email=_recoveryEmail,token=cmReadCode('cmRecCode'),p=$('#cmNewPassword')?.value||'',c2=$('#cmNewPasswordConfirm')?.value||'';
+ if(!email||token.length!==6)return cmAuthMsg('Digite o código completo de 6 dígitos.','bad');if(p.length<6)return cmAuthMsg('A nova senha precisa ter pelo menos 6 caracteres.','bad');if(p!==c2)return cmAuthMsg('As duas novas senhas precisam ser iguais.','bad');
+ cmAuthMsg('Validando código...');
+ try{
+  const {data,error}=await sb.auth.verifyOtp({email,token,type:'recovery'});if(error)throw error;
+  if(!data.session)throw new Error('Sessão de recuperação não criada.');
+  const up=await sb.auth.updateUser({password:p});if(up.error)throw up.error;
+  rememberAccount(email);cmAuthShow(data.session);_sbLoaded=false;await loadSupabase();render();toast('Senha atualizada. Seus dados e permissões foram mantidos.')
+ }catch(e){console.error(e);cmAuthMsg('Código inválido ou expirado. Solicite um novo código e tente novamente.','bad')}
 }
 async function cmSignOut(){
  if(!sb)return;
@@ -836,7 +900,7 @@ function cmShowAccessGate(req){
  const st=req&&req.status||'pending';
  if(t)t.textContent=st==='rejected'
    ?'Seu pedido de acesso não foi aprovado. Fale com o administrador do clube para revisar seu cadastro.'
-   :'Seu cadastro foi recebido. Confirme seu e-mail no Gmail/e-mail e aguarde a aprovação do administrador. Quando o acesso for liberado, entre novamente.';
+   :'Seu e-mail foi confirmado. Agora seu cadastro está aguardando aprovação do Presidente ou Vice-presidente. Quando o acesso for liberado, entre novamente.';
  g.hidden=false
 }
 function cmHideAccessGate(){const g=$('#cmAccessGate');if(g)g.hidden=true}
@@ -911,13 +975,22 @@ function cmDeleteMember(id){
    _clubMembers=_clubMembers.filter(x=>x.id!==m.id);render();toast('Acesso do usuário removido deste clube.')
   }catch(e){console.error(e);note(e&&e.message?e.message:'Não consegui remover este usuário.')}})()},'Remover acesso','REMOVER USUÁRIO')
 }
+async function cmDeleteAccount(id){
+ if(!isActualAdmin())return note('Somente Presidente ou Vice-presidente podem excluir contas.');
+ const m=_clubMembers.find(x=>x.id===id);if(!m)return;
+ if(m.user_id===(_authUser&&_authUser.id))return note('Você não pode excluir sua própria conta por esta tela.');
+ ask('Excluir definitivamente a conta de <b>'+esc(m.display_name||m.email||'este usuário')+'</b>?<br><span class="neg">A conta de login será apagada. Para voltar ao sistema, essa pessoa precisará criar uma nova conta, confirmar o código por e-mail e passar pela aprovação novamente.</span>',()=>{(async()=>{try{
+   const {data,error}=await sb.functions.invoke('cm-admin-delete-user',{body:{user_id:m.user_id}});if(error)throw error;if(data&&data.error)throw new Error(data.error);
+   _clubMembers=_clubMembers.filter(x=>x.user_id!==m.user_id);await cmLoadAccessRequests();render();toast('Conta excluída do sistema.')
+  }catch(e){console.error(e);note(e&&e.message?e.message:'Não consegui excluir esta conta.')}})()},'Excluir conta','EXCLUIR CONTA')
+}
 function usersPanel(){
  if(!isActualAdmin())return'';
  const q=String(_memberFilter||'').trim().toLowerCase();
  const rows=_clubMembers.filter(m=>!q||[m.display_name,m.email,m.role].some(v=>String(v||'').toLowerCase().includes(q)));
- const desktop=rows.map(m=>`<tr><td><b>${esc(m.display_name||'Usuário')}</b><div class="mute" style="font-size:12px">${esc(m.email||'—')}</div></td><td>${esc(m.role)}</td><td><span class="tag ${m.status==='active'?'ok':'neu'}">${m.status==='active'?'Ativo':esc(m.status)}</span></td><td><div class="cm-user-row-actions"><button class="btn ghost sm" onclick="cmEditMember('${m.id}')">Editar</button><button class="btn ghost sm" onclick="cmOpenUserPermissions('${m.user_id}')">Permissões</button>${m.user_id!==(_authUser&&_authUser.id)?`<button class="btn ghost sm" onclick="cmDeleteMember('${m.id}')">Excluir</button>`:''}</div></td></tr>`).join('');
- const mobile=rows.map(m=>`<div class="cm-user-mini"><span class="cm-user-avatar" style="background:var(--soft);color:var(--brand)">${esc((m.display_name||m.email||'US').split(/\s|@/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase())}</span><span class="cm-user-copy"><span class="cm-user-name">${esc(m.display_name||'Usuário')}</span><span class="mute" style="font-size:11px">${esc(m.email||'—')} · ${esc(m.role)}</span></span><button class="btn ghost sm" onclick="cmEditMember('${m.id}')">Editar</button>${m.user_id!==(_authUser&&_authUser.id)?`<button class="btn ghost sm" onclick="cmDeleteMember('${m.id}')">Excluir</button>`:''}</div>`).join('');
- return `<div class="card" style="margin-top:12px"><div class="cm-users-head"><div><h3 style="margin:0">Usuários do clube <span class="tag neu">${_clubMembers.length}</span></h3><p class="mute" style="margin:4px 0 0">Edite nome, função, permissões ou remova o acesso ao clube.</p></div><div class="cm-users-tools"><input placeholder="Buscar usuário..." value="${esc(_memberFilter)}" oninput="_memberFilter=this.value;render()"></div></div>
+ const desktop=rows.map(m=>`<tr><td><b>${esc(m.display_name||'Usuário')}</b><div class="mute" style="font-size:12px">${esc(m.email||'—')}</div></td><td>${esc(m.role)}</td><td><span class="tag ${m.status==='active'?'ok':'neu'}">${m.status==='active'?'Ativo':esc(m.status)}</span></td><td><div class="cm-user-row-actions"><button class="btn ghost sm" onclick="cmEditMember('${m.id}')">Editar</button><button class="btn ghost sm" onclick="cmOpenUserPermissions('${m.user_id}')">Permissões</button>${m.user_id!==(_authUser&&_authUser.id)?`<button class="btn ghost sm" onclick="cmDeleteMember('${m.id}')">Remover do clube</button><button class="btn ghost sm" style="color:var(--neg)" onclick="cmDeleteAccount('${m.id}')">Excluir conta</button>`:''}</div></td></tr>`).join('');
+ const mobile=rows.map(m=>`<div class="cm-user-mini"><span class="cm-user-avatar" style="background:var(--soft);color:var(--brand)">${esc((m.display_name||m.email||'US').split(/\s|@/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase())}</span><span class="cm-user-copy"><span class="cm-user-name">${esc(m.display_name||'Usuário')}</span><span class="mute" style="font-size:11px">${esc(m.email||'—')} · ${esc(m.role)}</span></span><button class="btn ghost sm" onclick="cmEditMember('${m.id}')">Editar</button>${m.user_id!==(_authUser&&_authUser.id)?`<button class="btn ghost sm" onclick="cmDeleteMember('${m.id}')">Remover do clube</button><button class="btn ghost sm" style="color:var(--neg)" onclick="cmDeleteAccount('${m.id}')">Excluir conta</button>`:''}</div>`).join('');
+ return `<div class="card" style="margin-top:12px"><div class="cm-users-head"><div><h3 style="margin:0">Usuários do clube <span class="tag neu">${_clubMembers.length}</span></h3><p class="mute" style="margin:4px 0 0">Edite nome, função e permissões. “Remover do clube” mantém a conta; “Excluir conta” obriga novo cadastro e nova aprovação.</p></div><div class="cm-users-tools"><input placeholder="Buscar usuário..." value="${esc(_memberFilter)}" oninput="_memberFilter=this.value;render()"></div></div>
  <div class="wrap cm-users-table" style="margin-top:10px"><table class="tbl"><tr><th>Usuário</th><th>Função</th><th>Status</th><th>Ações</th></tr>${desktop||'<tr><td colspan="4" class="empty">Nenhum usuário encontrado.</td></tr>'}</table></div>
  <div class="cm-user-card-list">${mobile||'<div class="empty">Nenhum usuário encontrado.</div>'}</div></div>`
 }
