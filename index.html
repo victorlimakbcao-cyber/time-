@@ -403,6 +403,22 @@ button,summary,a{touch-action:manipulation}
 .pa-b{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));border-top:1px solid var(--line)}
 .pa-i{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;padding:6px 14px;min-height:48px;color:var(--ink);font-size:15px;border-bottom:1px solid var(--line)}
 .pa-i input{width:24px!important;height:24px;flex:none;padding:0}
+
+/* --- Permissões por ação --- */
+.prm-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.prm-head select{width:min(280px,100%);margin-top:4px}
+.prm-badge{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:5px 9px;font-size:12px;font-weight:700}
+.prm-badge.full{background:var(--soft)}
+.prm-grid{overflow:auto;border:1px solid var(--line);border-radius:12px}
+.prm-grid table{margin:0;min-width:650px}
+.prm-grid th:not(:first-child),.prm-grid td:not(:first-child){text-align:center}
+.prm-grid input[type=checkbox]{width:20px!important;height:20px;padding:0}
+.prm-actions{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}
+.prm-note{font-size:12px;color:var(--mute)}
+.ro-locked{opacity:.45!important;cursor:not-allowed!important;filter:grayscale(.2)}
+.ro-mode{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+@media(max-width:640px){.prm-head{align-items:stretch}.prm-head>div,.prm-head select{width:100%}.prm-actions .btn{width:100%}}
+
 /* --- Modais: título e ações sempre visíveis; bottom sheet no celular --- */
 dialog{--dp:clamp(14px,3.4vw,20px);padding:0 var(--dp);max-height:min(calc(100dvh - 24px),calc(var(--vvh,100dvh) - 24px))}
 dialog>h2:first-child{position:sticky;top:0;z-index:3;background:var(--surface);margin:0 calc(-1*var(--dp));padding:var(--dp) var(--dp) 10px;border-bottom:1px solid var(--line);margin-bottom:6px}
@@ -667,7 +683,7 @@ const SUPABASE_KEY='sb_publishable_QObRfLJxDi9Kh8-nNLoJYA_pQ3feKBY';
 const sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
 const LEGACY_CACHE_KEY='cm_v2';
 const _legacyRaw=localStorage.getItem(LEGACY_CACHE_KEY),_hadLegacy=!!_legacyRaw;
-let _cacheKey=LEGACY_CACHE_KEY,_authUser=null,_sbTimer=null,_sbBusy=false,_sbLoaded=false,_members=[];
+let _cacheKey=LEGACY_CACHE_KEY,_authUser=null,_sbTimer=null,_sbBusy=false,_sbLoaded=false,_members=[],_actualRole='Presidente',_permRole='Staff';
 let DB;try{DB=_legacyRaw?JSON.parse(_legacyRaw):null}catch(e){}
 if(!DB||!DB.clubs)DB={cur:'c1',role:'Presidente',clubs:{c1:seed()}};
 let S=DB.clubs[DB.cur];
@@ -703,7 +719,7 @@ async function cmSignOut(){
 const cmAccountHtml=()=>_authUser?`<div class="cm-account"><span class="cm-account-email" title="${esc(_authUser.email||'')}">${esc(_authUser.email||'Conta conectada')}</span><button class="btn ghost sm" style="width:100%;color:inherit;border-color:rgba(255,255,255,.35)" onclick="cmSignOut()">Sair da conta</button></div>`:'';
 const cmSettingsPayload=(clubId,state)=>({club_id:clubId,fee_value:+state.feeValue||0,fee_day:+state.feeDay||10,initial_balance:+state.initial||0,initial_account:state.initialAcc||null,rating_weights:state.weights||{coach:50,staff:30,players:20},min_rated:+state.minRated||3,lists:state.lists||{},extra:{hiddenRk:state.hiddenRk||[],rankOut:state.rankOut||[]}});
 async function cmBootstrapClub(localState){
- const st=localState&&localState.club?localState:blank('Meu Clube'),cl=st.club||{};
+ const st=localState&&localState.club?localState:blank('Meu Clube');normalizePerms(st);const cl=st.club||{};
  const {data:club,error:clubErr}=await sb.from('cm_clubs').insert({name:cl.name||'Meu Clube',sigla:cl.sigla||'MC',brand_color:cl.color||'#1F6B4A',accent_color:cl.accent||'#E8B923',created_by:_authUser.id}).select('id').single();
  if(clubErr)throw clubErr;
  const clubId=club.id;
@@ -731,7 +747,7 @@ async function cmLoadRemoteDB(){
  const {data:members,error:memErr}=await sb.from('cm_members').select('club_id,role,status').eq('user_id',_authUser.id).eq('status','active');
  if(memErr)throw memErr;
  _members=members||[];
- if(!_members.length)return await cmBootstrapAccount();
+ if(!_members.length){_actualRole='Presidente';return await cmBootstrapAccount();}
  const ids=_members.map(m=>m.club_id);
  const [{data:clubs,error:clubErr},{data:states,error:stateErr}]=await Promise.all([
   sb.from('cm_clubs').select('id,name,sigla,brand_color,accent_color,logo_path').in('id',ids).is('deleted_at',null),
@@ -750,7 +766,7 @@ async function cmLoadRemoteDB(){
   out.clubs[m.club_id]=st;
  }
  out.cur=Object.keys(out.clubs)[0]||'';
- const actual=_members.find(m=>m.club_id===out.cur);out.role=actual&&actual.role?actual.role:'Presidente';
+ const actual=_members.find(m=>m.club_id===out.cur);_actualRole=actual&&actual.role?actual.role:'Presidente';out.role=_actualRole;
  return out;
 }
 async function syncSupabase(){
@@ -778,7 +794,7 @@ async function loadSupabase(){
  try{
   await sb.from('cm_profiles').upsert({user_id:_authUser.id,full_name:_authUser.email?String(_authUser.email).split('@')[0]:null},{onConflict:'user_id'});
   const remote=await cmLoadRemoteDB();
-  setDB(remote);
+  setDB(remote);Object.values(DB.clubs).forEach(cl=>normalizePerms(cl));
   try{localStorage.setItem(_cacheKey,JSON.stringify(DB));if(_hadLegacy)localStorage.setItem('cm_v2:migrated_to',_authUser.id)}catch(e){}
   render();
  }catch(e){console.warn('Supabase load falhou:',e);cmAuthMsg('Falha ao carregar o backend do clube. Atualize a página e tente novamente.','bad');_sbLoaded=false}
@@ -812,19 +828,44 @@ function fixPos(C){C=C||S;if(!C||!Array.isArray(C.players))return;C.lists=C.list
   if(!p.pos)p.pos=t;p.status='Ativo';ch=true});
  if(ch)save()}
 Object.values(DB.clubs).forEach(c=>fixPos(c));
-/* clubes já salvos: a nova página Ranking Geral herda a permissão de Estatísticas de cada função (só preenche o que ainda não existe) */
-{let ch=false;Object.values(DB.clubs).forEach(c=>Object.values(c.perms||{}).forEach(r=>{if(r&&r.ranking===undefined){r.ranking=!!r.estatisticas;ch=true}}));if(ch)save()}
-/* clubes já salvos: a nova página Campanha herda a permissão de Estatísticas de cada função (só preenche o que ainda não existe) */
-{let ch=false;Object.values(DB.clubs).forEach(c=>Object.values(c.perms||{}).forEach(r=>{if(r&&r.campanha===undefined){r.campanha=!!r.estatisticas;ch=true}}));if(ch)save()}
-const can=k=>k==='menu'||(DB.role==='Presidente'&&k==='config')||!!(S.perms[DB.role]&&S.perms[DB.role][k]);
+/* permissões v2: Presidente e Vice-presidente têm acesso total.
+   Demais funções começam em somente visualização; o administrador pode personalizar por módulo e ação. */
+const PERM_ACTIONS=['view','create','edit','delete'];
+const ADMIN_ROLES=['Presidente','Vice-presidente'];
+const isAdminRole=r=>ADMIN_ROLES.includes(r||DB.role);
+const isActualAdmin=()=>ADMIN_ROLES.includes(_actualRole);
+const fullPerm=()=>({view:true,create:true,edit:true,delete:true});
+const viewPerm=(on=true)=>({view:!!on,create:false,edit:false,delete:false});
+function normalizePerms(C,forceDefault=false){
+ if(!C)return false;C.perms=C.perms||{};let ch=false;
+ const roles=['Presidente','Vice-presidente','Diretor','Tesoureiro','Técnico','Auxiliar técnico','Comissão técnica','Jogador','Staff','Resp. estatísticas','Resp. súmula'];
+ roles.forEach(r=>{C.perms[r]=C.perms[r]||{};NAV.forEach(([k])=>{
+   let cur=C.perms[r][k],next;
+   if(ADMIN_ROLES.includes(r))next=fullPerm();
+   else if(forceDefault||C.permModelVersion!==2)next=viewPerm(k!=='config');
+   else if(cur&&typeof cur==='object')next={view:!!cur.view,create:!!cur.create,edit:!!cur.edit,delete:!!cur.delete};
+   else next=viewPerm(k==='config'?false:!!cur);
+   if(JSON.stringify(cur)!==JSON.stringify(next)){C.perms[r][k]=next;ch=true}
+  })});
+ if(C.permModelVersion!==2){C.permModelVersion=2;ch=true}
+ return ch
+}
+{let ch=false;Object.values(DB.clubs).forEach(cl=>{if(normalizePerms(cl))ch=true});if(ch)save()}
+const canDo=(k,a='view',role=DB.role)=>{
+ if(k==='menu')return a==='view';
+ if(ADMIN_ROLES.includes(role))return true;
+ const p=S.perms&&S.perms[role]&&S.perms[role][k];
+ return !!(p&&typeof p==='object'&&p[a])
+};
+const can=k=>canDo(k,'view');
 function blank(name){const d=seed();return{...d,club:{...d.club,name,sigla:name.slice(0,2).toUpperCase()},players:[],matches:[],events:[],tx:[],fees:{[TODAY.slice(0,7)]:{}},comps:[],sponsors:[],contracts:[],docs:[],staff:[]}}
-function switchClub(id){if(id==='__new'){modal('Novo clube',[{k:'name',l:'Nome do clube'}],v=>{if(!v.name)return'Informe o nome.';(async()=>{try{const b=await cmBootstrapClub(blank(v.name));DB.clubs[b.clubId]=b.state;DB.cur=b.clubId;S=DB.clubs[b.clubId];fill();fixPos();save();go('dashboard');toast('Clube criado e conectado ao backend.')}catch(e){console.error(e);note('Não consegui criar o clube no backend. Tente novamente.')}})()});render();return}
- DB.cur=id;S=DB.clubs[id];fill();fixPos();save();go('dashboard')}
+function switchClub(id){if(id==='__new'){if(!isActualAdmin())return note('Somente Presidente ou Vice-presidente podem criar um novo clube.');modal('Novo clube',[{k:'name',l:'Nome do clube'}],v=>{if(!v.name)return'Informe o nome.';(async()=>{try{const b=await cmBootstrapClub(blank(v.name));DB.clubs[b.clubId]=b.state;DB.cur=b.clubId;S=DB.clubs[b.clubId];_actualRole='Presidente';DB.role='Presidente';normalizePerms(S);fill();fixPos();save();go('dashboard');toast('Clube criado e conectado ao backend.')}catch(e){console.error(e);note('Não consegui criar o clube no backend. Tente novamente.')}})()});render();return}
+ DB.cur=id;S=DB.clubs[id];normalizePerms(S);fill();fixPos();const m=_members.find(x=>x.club_id===id);_actualRole=m&&m.role?m.role:'Presidente';DB.role=_actualRole;save();go('dashboard')}
 function seedExtra(){
  const A=['dashboard','partidas','competicoes','elenco','campanha','estatisticas','ranking','calendario','financeiro','patrocinadores','contratos','documentos','config'];
- const g=(...ks)=>Object.fromEntries(A.map(k=>[k,ks.includes(k)]));
- const tec=['dashboard','partidas','competicoes','elenco','campanha','estatisticas','ranking','calendario'];
- const perms={'Presidente':g(...A),'Vice-presidente':g(...A),'Diretor':g(...A.filter(k=>k!=='config')),'Tesoureiro':g('dashboard','calendario','financeiro','patrocinadores','contratos','documentos'),'Técnico':g(...tec),'Auxiliar técnico':g(...tec),'Comissão técnica':g(...tec),'Jogador':g(...tec),'Staff':g('dashboard','partidas','calendario'),'Resp. estatísticas':g('dashboard','partidas','competicoes','elenco','campanha','estatisticas','ranking'),'Resp. súmula':g('dashboard','partidas','campanha','estatisticas','ranking')};
+ const fp=()=>({view:true,create:true,edit:true,delete:true}),vp=k=>({view:k!=='config',create:false,edit:false,delete:false});
+ const mkRole=admin=>Object.fromEntries(A.map(k=>[k,admin?fp():vp(k)]));
+ const perms={'Presidente':mkRole(true),'Vice-presidente':mkRole(true),'Diretor':mkRole(false),'Tesoureiro':mkRole(false),'Técnico':mkRole(false),'Auxiliar técnico':mkRole(false),'Comissão técnica':mkRole(false),'Jogador':mkRole(false),'Staff':mkRole(false),'Resp. estatísticas':mkRole(false),'Resp. súmula':mkRole(false)};
  const g2=(round,home,away,hg,ag)=>({id:nid(),round,home,away,hg,ag});
  const others=['Unidos da Vila','Real Bairro','Atlético Norte','Estrela FC','Vila Nova FC','Guarani do Sul','Bairro Alto EC'];
  const comp={id:nid(),name:'Copa Sergipe Amador',format:'pontos_corridos',rounds:14,pts:{w:3,d:1,l:0},tie:['vitorias','saldo','gols_pro'],
@@ -844,7 +885,7 @@ function seedExtra(){
    segs:['Alimentação','Automotivo','Saúde e bem-estar','Varejo','Serviços','Outros'],
    ctypes:['Jogador','Técnico','Comissão','Funcionário','Patrocinador','Campo','Fornecedor','Prestador'],
    cargos:['Presidente','Vice-presidente','Diretor','Técnico','Auxiliar técnico','Preparador físico','Preparador de goleiros','Fisioterapeuta','Massagista','Médico','Roupeiro','Gandula','Fotógrafo','Social media','Motorista','Segurança','Outros']},
-  hiddenRk:[],perms,comps:[comp],
+  hiddenRk:[],perms,permModelVersion:2,comps:[comp],
   staff:[{id:nid(),nome:'Carlos Andrade',cargo:'Técnico',tel:'(79) 9 9811-2200',cache:300,status:'Ativo'},{id:nid(),nome:'Marcelo Dias',cargo:'Auxiliar técnico',tel:'(79) 9 9922-1010',cache:0,status:'Ativo'},{id:nid(),nome:'Fernanda Lopes',cargo:'Fisioterapeuta',tel:'(79) 9 9733-4455',cache:150,status:'Ativo'},{id:nid(),nome:'Seu Jorge',cargo:'Roupeiro',tel:'(79) 9 9644-8899',cache:80,status:'Ativo'},{id:nid(),nome:'Igor Prado',cargo:'Fotógrafo',tel:'(79) 9 9555-7766',cache:120,status:'Ativo'}],
   sponsors:[sp('Padaria Estrela','Dona Marta','(79) 9 9111-0001','Alimentação',14400,'Dinheiro','fechado','2026-08-05','2027-08-05',['Reunião no balcão da padaria','Contrato assinado']),
    sp('Auto Peças Silva','Sr. Silva','(79) 9 9111-0002','Automotivo',6000,'Dinheiro','proposta','','',['Enviada proposta de R$ 500/mês']),
@@ -970,15 +1011,20 @@ let view='dashboard',sub='',ctx={};
 function go(v,s='',c={}){view=v;sub=s;ctx=c;render();window.scrollTo(0,0)}
 function switchers(){
  const so='style="background:var(--surface);color:var(--ink);margin-top:4px"';
- return `<label style="color:inherit;opacity:.8">Clube</label><select ${so} onchange="switchClub(this.value)">${Object.keys(DB.clubs).map(k=>`<option value="${k}" ${k===DB.cur?'selected':''}>${esc(DB.clubs[k].club.name)}</option>`).join('')}<option value="__new">＋ Novo clube</option></select><label style="color:inherit;opacity:.8">Ver como (função)</label><select ${so} onchange="setRole(this.value)">${Object.keys(S.perms).map(r=>`<option ${r===DB.role?'selected':''}>${r}</option>`).join('')}</select>`}
-function setRole(r){DB.role=r;save();render()}
+ const clubNew=isActualAdmin()?'<option value="__new">＋ Novo clube</option>':'';
+ const roleCtl=isActualAdmin()?`<label style="color:inherit;opacity:.8">Ver como (função)</label><select ${so} onchange="setRole(this.value)">${Object.keys(S.perms).map(r=>`<option ${r===DB.role?'selected':''}>${r}</option>`).join('')}</select>`:`<label style="color:inherit;opacity:.8">Função</label><div style="margin-top:4px;font-weight:700">${esc(_actualRole)}</div>`;
+ return `<label style="color:inherit;opacity:.8">Clube</label><select ${so} onchange="switchClub(this.value)">${Object.keys(DB.clubs).map(k=>`<option value="${k}" ${k===DB.cur?'selected':''}>${esc(DB.clubs[k].club.name)}</option>`).join('')}${clubNew}</select>${roleCtl}`}
+function setRole(r){if(!isActualAdmin())return;DB.role=S.perms[r]?r:_actualRole;try{localStorage.setItem(_cacheKey,JSON.stringify(DB))}catch(e){}render()}
 function shell(){
  const items=NAV.filter(([k])=>can(k)).map(([k,l])=>`<a class="${view===k?'on':''}" onclick="go('${k}')">${ic(k)}${l}</a>`).join('');
  $('#side').innerHTML=`<div class="brand">${logo(38,44)}<b>${esc(S.club.name)}</b></div><div class="nav">${items}</div><div style="margin-top:auto;padding:8px">${switchers()}${cmAccountHtml()}</div>`;
  $('#bottom').innerHTML=[...MOB.filter(can).map(k=>[k,NAV.find(n=>n[0]===k)[1]]),['menu','Mais']].map(([k,l])=>`<a class="${(view===k||(k==='menu'&&!MOB.includes(view)))?'on':''}" onclick="go('${k}')">${ic(k==='menu'?'mais':k)}${l}</a>`).join('');
  const r=document.documentElement.style;r.setProperty('--brand',S.club.color);r.setProperty('--accent',S.club.accent);
 }
-function render(){if(!can(view))view='dashboard';shell();const V={dashboard,partidas,competicoes,elenco,campanha,estatisticas,ranking,calendario,financeiro,patrocinadores,contratos,documentos,config,menu}[view];$('#main').innerHTML=(DB.role!=='Presidente'?`<div class="bn"><b>Visualizando como: ${esc(DB.role)}</b><button class="btn sm" onclick="setRole('Presidente')">Sair do modo de visualização</button></div>`:'')+V();post()}
+function render(){if(!can(view))view='dashboard';shell();const V={dashboard,partidas,competicoes,elenco,campanha,estatisticas,ranking,calendario,financeiro,patrocinadores,contratos,documentos,config,menu}[view];
+ const sim=isActualAdmin()&&DB.role!==_actualRole?`<div class="bn"><b>Visualizando como: ${esc(DB.role)}</b><button class="btn sm" onclick="setRole('${_actualRole}')">Voltar para ${esc(_actualRole)}</button></div>`:'';
+ const ro=view!=='menu'&&can(view)&&!canDo(view,'create')&&!canDo(view,'edit')&&!canDo(view,'delete')?`<div class="bn ro-mode"><b>Modo somente visualização</b><span>Esta função pode consultar este módulo, mas não pode alterar dados.</span></div>`:'';
+ $('#main').innerHTML=sim+ro+V();post()}
 const head=(t,extra='')=>`<div class="top"><h1>${t}</h1><div class="row">${extra}</div></div>`;
 const tabs=(list,cur,fn)=>`<div class="tabs">${list.map(([k,l])=>`<button class="${cur===k?'on':''}" onclick="${fn}('${k}')">${l}</button>`).join('')}</div>`;
 function menu(){return head('Menu')+`<div class="mn-g">${NAV.filter(n=>!MOB.includes(n[0])&&can(n[0])).map(([k,l])=>`<button type="button" class="mn-t" onclick="go('${k}')">${ic(k)}<span>${l}</span></button>`).join('')}</div><div class="card mn-sw" style="margin-top:12px;background:var(--brand);color:#fff">${switchers()}</div>`}
@@ -1141,17 +1187,56 @@ const txCard=(t,mode)=>{const cx=mode==='cx',st=t.status==='pago'?['ok','Pago']:
  const act=cx?(t.fee?'<span class="mute">Mensalidade</span>':`<button class="btn ghost" onclick="editTx(${t.id})">Editar</button><button class="btn ghost" onclick="delTx(${t.id})">Excluir</button>`)
   :`<button class="btn ghost" onclick="editTx(${t.id})">Editar</button><details class="mo"><summary class="btn ghost">Mais opções</summary><div class="mo-m"><button class="btn ghost" onclick="cancelTx(${t.id})">${t.status==='cancelado'?'Reativar':'Cancelar'}</button><button class="btn ghost" onclick="delTx(${t.id})">Excluir</button></div></details>`;
  return `<div class="card tc${t.status==='cancelado'?' off':''}"><div class="tc-top"><b>${fd(t.date)}</b>${tag}</div><div class="tc-d">${esc(t.desc)}</div><div class="tc-c mute">${cx?'':esc(t.cat)}</div><div class="tc-v ${t.type==='in'?'pos':'neg'}">${t.type==='in'?'+':'−'}${brl(t.value)}</div><div class="tc-act">${act}</div></div>`};
-function permSet(r,k,v,el){S.perms[r][k]=v;save();document.querySelectorAll('input[data-pm="'+r+'|'+k+'"]').forEach(i=>{if(i!==el)i.checked=v})}
-const permList=()=>Object.keys(S.perms).map(r=>`<details class="pa" ${r===DB.role?'open':''}><summary><b>${esc(r)}</b>${r==='Presidente'?'<span class="mute pa-c">acesso total</span>':''}</summary><div class="pa-b">${NAV.map(n=>`<label class="pa-i"><span>${n[1]}</span><input type="checkbox" data-pm="${r}|${n[0]}" ${S.perms[r][n[0]]||(r==='Presidente'&&n[0]==='config')?'checked':''} ${r==='Presidente'?'disabled':''} onchange="permSet('${r}','${n[0]}',this.checked,this)"></label>`).join('')}</div></details>`).join('');
-/* pós-render: imagens lazy + tabelas "viram" cards no celular (rótulos vêm do cabeçalho; tabelas numéricas densas mantêm rolagem interna) */
+const permName={view:'Visualizar',create:'Criar',edit:'Editar',delete:'Excluir'};
+function permSet(r,k,a,v){
+ if(!isActualAdmin()||ADMIN_ROLES.includes(r))return;
+ normalizePerms(S);
+ const p=S.perms[r][k]||(S.perms[r][k]=viewPerm(k!=='config'));
+ if(a==='view'&&!v){p.view=false;p.create=false;p.edit=false;p.delete=false}
+ else{p[a]=!!v;if(a!=='view'&&v)p.view=true}
+ save();render()
+}
+function permResetRole(r){
+ if(!isActualAdmin()||ADMIN_ROLES.includes(r))return;
+ NAV.forEach(([k])=>S.perms[r][k]=viewPerm(k!=='config'));
+ save();render();toast(r+' voltou ao padrão somente visualização.')
+}
+function permPanel(){
+ normalizePerms(S);const roles=Object.keys(S.perms);if(!roles.includes(_permRole)||ADMIN_ROLES.includes(_permRole))_permRole=roles.find(r=>!ADMIN_ROLES.includes(r))||roles[0];
+ const admin=ADMIN_ROLES.includes(_permRole),P=S.perms[_permRole]||{};
+ const cells=(k)=>PERM_ACTIONS.map(a=>`<td><input type="checkbox" aria-label="${permName[a]} em ${k}" ${admin||P[k]&&P[k][a]?'checked':''} ${admin?'disabled':''} onchange="permSet('${esc(_permRole)}','${k}','${a}',this.checked)"></td>`).join('');
+ return `<div class="card" style="margin-top:12px"><div class="prm-head"><div><h3 style="margin-bottom:4px">Permissões por função</h3><p class="mute" style="margin:0">Presidente e Vice-presidente têm acesso total. As demais funções começam em somente visualização e podem ser personalizadas a qualquer momento.</p></div><div><label>Função</label><select onchange="_permRole=this.value;render()">${roles.map(r=>`<option ${r===_permRole?'selected':''}>${esc(r)}</option>`).join('')}</select></div></div>
+ <div class="row" style="margin-bottom:10px"><span class="prm-badge ${admin?'full':''}">${admin?'Acesso total fixo':'Permissões personalizadas'}</span>${!admin?'<span class="prm-note">Desmarcar “Visualizar” remove também Criar, Editar e Excluir daquele módulo.</span>':''}</div>
+ <div class="prm-grid"><table class="tbl rt-keep"><tr><th>Módulo</th>${PERM_ACTIONS.map(a=>`<th>${permName[a]}</th>`).join('')}</tr>${NAV.map(([k,l])=>`<tr><td><b>${l}</b></td>${cells(k)}</tr>`).join('')}</table></div>
+ <div class="prm-actions"><span class="prm-note">Use “Ver como” no menu para testar exatamente como cada função verá o sistema.</span>${!admin?`<button class="btn ghost sm" onclick="permResetRole('${esc(_permRole)}')">Restaurar somente visualização</button>`:''}</div></div>`
+}
+function permissionActionFor(el){
+ if(!el)return'';const h=[el.getAttribute('onclick'),el.getAttribute('onchange'),el.getAttribute('oninput')].filter(Boolean).join(' '),t=(el.textContent||el.value||'').trim().toLowerCase();
+ if(!h&&!(el.tagName==='BUTTON'||el.type==='file'))return'';
+ if(/del|delete|remove|exclu|askReset|cancelTx/i.test(h)||/excluir|remover|apagar|restaurar dados/.test(t))return'delete';
+ if(/add|new|novo|nova|create|criar|lan[cç]ar|upload|cadastrar/i.test(h)||/novo|nova|adicionar|criar|lançar|cadastrar|upload/.test(t))return'create';
+ if(/edit|tog|set[A-Z]|save|manage|feeParts|rkCfg|encerrar|finalizar|readLogo/i.test(h)||/editar|salvar|alterar|configurar|escolher|encerrar|finalizar/.test(t))return'edit';
+ if(/save\(\)/.test(h))return'edit';
+ return''
+}
+function applyPermissionUI(){
+ const m=document.getElementById('main');if(!m||isAdminRole(DB.role))return;
+ m.querySelectorAll('button,input,select,textarea,summary').forEach(el=>{
+  const a=permissionActionFor(el);if(!a||canDo(view,a))return;
+  el.classList.add('ro-locked');el.setAttribute('aria-disabled','true');el.dataset.permLock=a;
+  if(/^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName))el.disabled=true
+ })
+}
 function post(){const m=document.getElementById('main');if(!m)return;
  m.querySelectorAll('img:not([loading])').forEach(i=>{i.loading='lazy';i.decoding='async'});
  m.querySelectorAll('table.tbl:not(.rt-keep)').forEach(t=>{const rs=[...t.rows];if(!rs.length)return;const h=rs[0].querySelector('th')?rs[0]:null,lb=h?[...h.cells].map(c=>c.textContent.trim()):[];
   if(lb.length>=6&&lb.filter(x=>x.length<=4).length>=lb.length-3){t.classList.add('rt-keep');return}
   if(h)h.classList.add('rt-h');
   rs.forEach(r=>{if(r===h)return;const cs=[...r.cells];if(lb.length&&cs.length===lb.length&&cs.every(c=>c.colSpan===1))cs.forEach((c,i)=>{if(lb[i])c.setAttribute('data-l',lb[i])})});
-  t.classList.add('rt');const w=t.closest('.wrap');if(w)w.classList.add('rt-w')})}
-document.addEventListener('click',e=>{document.querySelectorAll('details.mo[open]').forEach(d=>{if(!d.contains(e.target))d.open=false})});
+  t.classList.add('rt');const w=t.closest('.wrap');if(w)w.classList.add('rt-w')});
+ applyPermissionUI()
+}
+document.addEventListener('click',e=>{const lk=e.target.closest&&e.target.closest('[data-perm-lock]');if(lk){e.preventDefault();e.stopImmediatePropagation();note('Sua função está em modo somente visualização para esta ação.');return}document.querySelectorAll('details.mo[open]').forEach(d=>{if(!d.contains(e.target))d.open=false})},true);
 document.addEventListener('focusin',e=>{const t=e.target;if(t.closest&&t.closest('dialog')&&/^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName))setTimeout(()=>{try{t.scrollIntoView({block:'center',behavior:'smooth'})}catch(_){}},300)});
 if(window.visualViewport){const sv=()=>document.documentElement.style.setProperty('--vvh',visualViewport.height+'px');visualViewport.addEventListener('resize',sv);sv()}
 {const mq=matchMedia('(max-width:640px)');const ch=()=>{if(typeof render==='function')render()};mq.addEventListener?mq.addEventListener('change',ch):mq.addListener(ch)}
@@ -1534,9 +1619,9 @@ function config(){
  <div class="grid g3" style="margin-top:12px"><div class="card"><h3>Regras</h3><p class="mute">Pontos por vitória, empate e derrota e critérios de desempate ficam em cada competição (Competições → Regras e times). O aproveitamento do Dashboard usa 3 · 1 · 0.</p></div>
  <div class="card"><h3>Mensalidade</h3><label>Valor (R$)</label><input type="number" style="width:100%" value="${S.feeValue}" onchange="S.feeValue=+this.value;save()"><label>Dia do vencimento</label><input type="number" min="1" max="28" style="width:100%" value="${S.feeDay||10}" onchange="S.feeDay=Math.min(28,Math.max(1,+this.value||10));save()"><label>Participantes</label><button class="btn ghost sm" onclick="feeParts()">Escolher (${feePl().length} de ${sched().length})</button></div>
  <div class="card"><h3>Saldo de caixa</h3><label>Saldo inicial (R$)</label><input type="number" style="width:100%" value="${S.initial}" onchange="S.initial=+this.value;save()"><label>Conta do saldo inicial</label><select onchange="S.initialAcc=this.value;save()">${['Conta Pix','Caixa físico','Conta bancária'].map(o=>`<option ${o===(S.initialAcc||'Conta Pix')?'selected':''}>${o}</option>`).join('')}</select><p class="mute">O saldo atual é calculado a partir dos lançamentos pagos. Para corrigi-lo, faça um lançamento.</p></div></div>
- <div class="card" style="margin-top:12px"><h3>Permissões por função</h3><p class="mute">Marque o que cada função pode acessar. Use "Ver como" no menu para testar. O Presidente sempre mantém acesso às configurações.</p><div class="cq"><div class="wrap perm-tbl"><table class="tbl rt-keep"><tr><th>Função</th>${NAV.map(n=>`<th style="font-size:11px">${n[1]}</th>`).join('')}</tr>${Object.keys(S.perms).map(r=>`<tr><td>${r}</td>${A.map(k=>`<td><input type="checkbox" style="width:auto" ${S.perms[r][k]||(r==='Presidente'&&k==='config')?'checked':''} ${r==='Presidente'?'disabled':''} data-pm="${r}|${k}" onchange="permSet('${r}','${k}',this.checked,this)"></td>`).join('')}</tr>`).join('')}</table></div><div class="perm-list">${permList(A)}</div></div></div>
+ ${isActualAdmin()?permPanel():''}
  <div class="card row" style="margin-top:12px"><span class="sp mute">Dados do clube atual</span><button class="btn ghost sm" onclick="askReset()">Restaurar dados de exemplo</button>${Object.keys(DB.clubs).length>1?`<button class="btn ghost sm" onclick="delClub()">Excluir este clube</button>`:''}</div>
- <p class="mute">Este é um protótipo: função e clube são simulados e os dados ficam só neste navegador. Login real, isolamento entre clubes e permissões de verdade dependem do Supabase (RLS do schema).</p>`}
+`}
 function feeParts(){const d=$('#dlg');d.innerHTML=`<h2>Participantes da mensalidade</h2>${sched().map(p=>`<label style="display:flex;gap:8px;align-items:center;color:var(--ink);font-size:15px;margin:6px 0"><input type="checkbox" style="width:auto" data-p="${p.id}" ${(S.feeOut||[]).includes(p.id)?'':'checked'}>${esc(p.nome)}</label>`).join('')}<div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn" id="mdone">Salvar</button></div>`;$('#mdone').onclick=()=>{S.feeOut=[...d.querySelectorAll('[data-p]')].filter(x=>!x.checked).map(x=>+x.dataset.p);save();d.close();render()};d.showModal()}
 function readLogo(f,ok,fail,M=256,fmt='image/png'){
  if(!f.type.startsWith('image/'))return fail('Escolha um arquivo de imagem (PNG, JPG, WebP ou SVG).');
