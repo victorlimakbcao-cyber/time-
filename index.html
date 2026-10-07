@@ -581,7 +581,18 @@ img.sh.shk{opacity:1}
 .cm-auth-card label{color:#5e7267}.cm-auth-card input{background:#f5f7f5;color:#14231c}
 .cm-auth-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}.cm-auth-actions .btn{width:100%}
 .cm-auth-msg{min-height:20px;margin-top:10px;font-size:13px}.cm-auth-msg.bad{color:#c0392b}.cm-auth-msg.ok{color:#1f8a55}
-.cm-account{margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.22);font-size:12px}.cm-account-email{display:block;opacity:.8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:6px}
+.cm-account{margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.22);font-size:12px}
+.cm-user-menu{position:relative}
+.cm-user-menu>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:9px;padding:8px;border:1px solid rgba(255,255,255,.2);border-radius:10px;background:rgba(255,255,255,.06)}
+.cm-user-menu>summary::-webkit-details-marker{display:none}
+.cm-user-avatar{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.18);font-weight:800;flex:none}
+.cm-user-copy{min-width:0;flex:1}.cm-user-name{display:block;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cm-account-email{display:block;opacity:.75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}
+.cm-user-pop{display:grid;gap:6px;margin-top:7px;padding:7px;background:var(--brand);border:1px solid rgba(255,255,255,.25);border-radius:10px}
+.cm-user-pop .btn{width:100%;text-align:left;justify-content:flex-start;color:#fff;border-color:rgba(255,255,255,.28)}
+.cm-recent{display:grid;gap:6px;margin:0 0 14px}.cm-recent:empty{display:none}
+.cm-recent-title{font-size:12px;font-weight:700;color:#5e7267;margin-bottom:2px}
+.cm-recent-btn{display:flex;align-items:center;gap:9px;width:100%;padding:9px 10px;border:1px solid #dce5df;border-radius:10px;background:#f8faf8;color:#14231c;text-align:left;cursor:pointer}
+.cm-recent-btn:hover{background:#eef5f0}.cm-recent-dot{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#dcefe3;font-weight:800;color:#1f6b4a;flex:none}.cm-recent-btn span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:520px){.cm-auth-actions{grid-template-columns:1fr}}
 
 </style>
@@ -597,6 +608,7 @@ img.sh.shk{opacity:1}
     <div class="cm-auth-brand"><div class="shield">CM</div><b>Clube Manager</b></div>
     <h1 id="cmAuthTitle">Acesse sua conta</h1>
     <p>Entre para sincronizar os dados do clube com segurança.</p>
+    <div id="cmRecentAccounts" class="cm-recent"></div>
     <label for="cmAuthEmail">E-mail</label>
     <input id="cmAuthEmail" type="email" autocomplete="email" inputmode="email" placeholder="seu@email.com">
     <label for="cmAuthPassword">Senha</label>
@@ -693,10 +705,25 @@ const freshDB=()=>({cur:'c1',role:'Presidente',clubs:{c1:blank('Meu Clube')}});
 const setDB=x=>{DB=x&&x.clubs?x:freshDB();if(!DB.cur||!DB.clubs[DB.cur])DB.cur=Object.keys(DB.clubs)[0]||'c1';if(!DB.clubs[DB.cur])DB=freshDB();S=DB.clubs[DB.cur];fill()};
 function cmAuthMsg(msg,type=''){const e=$('#cmAuthMsg');if(!e)return;e.textContent=msg||'';e.className='cm-auth-msg '+type}
 function cmAuthBusy(on){['#cmAuthLogin','#cmAuthSignup'].forEach(s=>{const b=$(s);if(b)b.disabled=!!on})}
+const RECENT_ACCOUNTS_KEY='cm_recent_accounts_v1';
+function recentAccounts(){try{const a=JSON.parse(localStorage.getItem(RECENT_ACCOUNTS_KEY)||'[]');return Array.isArray(a)?a.filter(Boolean):[]}catch(e){return[]}}
+function rememberAccount(email){email=String(email||'').trim().toLowerCase();if(!email)return;const a=[email,...recentAccounts().filter(x=>x!==email)].slice(0,5);try{localStorage.setItem(RECENT_ACCOUNTS_KEY,JSON.stringify(a))}catch(e){}}
+function renderRememberedAccounts(){
+ const box=$('#cmRecentAccounts');if(!box)return;const a=recentAccounts();
+ box.innerHTML=a.length?'<div class="cm-recent-title">Contas usadas neste dispositivo</div>'+a.map(email=>`<button class="cm-recent-btn" type="button" onclick="chooseRememberedAccount('${esc(email)}')"><span class="cm-recent-dot">${esc(email.slice(0,2).toUpperCase())}</span><span>${esc(email)}</span></button>`).join(''):''
+}
+function chooseRememberedAccount(email){const e=$('#cmAuthEmail'),p=$('#cmAuthPassword');if(e)e.value=email||'';if(p){p.value='';p.focus()}cmAuthMsg('Digite a senha dessa conta para continuar.')}
+function cmResetSessionUi(){
+ _authUser=null;_members=[];_clubMembers=[];_actualRole='Presidente';_permUser='';_userPermDraft=null;_userPermDirty=false;_sbLoaded=false;
+ const p=$('#cmAuthPassword');if(p)p.value='';
+ const g=$('#cmAuthGate');if(g)g.hidden=false;
+ renderRememberedAccounts()
+}
 function cmAuthShow(session){
  _authUser=session&&session.user?session.user:null;
  const g=$('#cmAuthGate');if(g)g.hidden=!!_authUser;
- if(_authUser){_cacheKey=LEGACY_CACHE_KEY+':'+_authUser.id;cmAuthMsg('')}
+ if(_authUser){_cacheKey=LEGACY_CACHE_KEY+':'+_authUser.id;rememberAccount(_authUser.email);cmAuthMsg('')}
+ else renderRememberedAccounts()
 }
 async function cmAuthSubmit(mode){
  if(!sb)return cmAuthMsg('Não foi possível iniciar a conexão com o Supabase.','bad');
@@ -707,16 +734,31 @@ async function cmAuthSubmit(mode){
  try{
   const res=mode==='signup'?await sb.auth.signUp({email,password}):await sb.auth.signInWithPassword({email,password});
   if(res.error)throw res.error;
-  if(mode==='signup'&&!res.data.session){cmAuthMsg('Conta criada. Confira seu e-mail para confirmar o cadastro e depois entre.','ok');return}
+  rememberAccount(email);
+  if(mode==='signup'&&!res.data.session){cmAuthMsg('Conta criada. Confira seu e-mail para confirmar o cadastro e depois entre.','ok');renderRememberedAccounts();return}
   if(res.data.session){cmAuthShow(res.data.session);_sbLoaded=false;await loadSupabase();render()}
  }catch(e){cmAuthMsg(e&&e.message?e.message:'Não foi possível autenticar.','bad')}
  finally{cmAuthBusy(false)}
 }
 async function cmSignOut(){
  if(!sb)return;
- try{await syncSupabase();await sb.auth.signOut()}finally{location.reload()}
+ try{await syncSupabase();if(_authUser&&_authUser.email)rememberAccount(_authUser.email);const {error}=await sb.auth.signOut({scope:'local'});if(error)throw error}
+ catch(e){console.warn('Falha ao sair:',e)}
+ finally{location.reload()}
 }
-const cmAccountHtml=()=>_authUser?`<div class="cm-account"><span class="cm-account-email" title="${esc(_authUser.email||'')}">${esc(_authUser.email||'Conta conectada')}</span><button class="btn ghost sm" style="width:100%;color:inherit;border-color:rgba(255,255,255,.35)" onclick="cmSignOut()">Sair da conta</button></div>`:'';
+async function cmSwitchUser(){
+ if(!sb)return;
+ const email=_authUser&&_authUser.email?_authUser.email:'';
+ try{
+  await syncSupabase();if(email)rememberAccount(email);
+  const {error}=await sb.auth.signOut({scope:'local'});if(error)throw error;
+  cmResetSessionUi();const e=$('#cmAuthEmail');if(e)e.value='';cmAuthMsg('Escolha uma conta usada neste dispositivo ou entre com outro e-mail.');
+ }catch(e){console.error(e);note('Não consegui trocar de usuário agora. Tente novamente.')}
+}
+const cmAccountHtml=()=>_authUser?(()=>{
+ const email=_authUser.email||'Conta conectada',name=(email.split('@')[0]||'Usuário').replace(/[._-]+/g,' '),ini=name.split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase()||'US';
+ return `<div class="cm-account"><details class="cm-user-menu"><summary><span class="cm-user-avatar">${esc(ini)}</span><span class="cm-user-copy"><span class="cm-user-name">${esc(name)}</span><span class="cm-account-email">${esc(email)}</span></span><span>⌃</span></summary><div class="cm-user-pop"><button class="btn ghost sm" onclick="cmSwitchUser()">⇄ Alterar usuário</button><button class="btn ghost sm" onclick="cmSignOut()">↪ Sair da conta</button></div></details></div>`
+})():'';
 const cmSettingsPayload=(clubId,state)=>({club_id:clubId,fee_value:+state.feeValue||0,fee_day:+state.feeDay||10,initial_balance:+state.initial||0,initial_account:state.initialAcc||null,rating_weights:state.weights||{coach:50,staff:30,players:20},min_rated:+state.minRated||3,lists:state.lists||{},extra:{hiddenRk:state.hiddenRk||[],rankOut:state.rankOut||[]}});
 async function cmBootstrapClub(localState){
  const st=localState&&localState.club?localState:blank('Meu Clube');normalizePerms(st);const cl=st.club||{};
@@ -819,6 +861,7 @@ async function loadSupabase(){
  }catch(e){console.warn('Supabase load falhou:',e);cmAuthMsg('Falha ao carregar o backend do clube. Atualize a página e tente novamente.','bad');_sbLoaded=false}
 }
 async function cmAuthInit(){
+ renderRememberedAccounts();
  if(!sb){cmAuthMsg('Biblioteca do Supabase não carregou. Atualize a página.','bad');return}
  const {data:{session},error}=await sb.auth.getSession();
  if(error){cmAuthMsg(error.message||'Não foi possível verificar a sessão.','bad');return}
@@ -1713,7 +1756,29 @@ function setLogo(inp){const f=inp.files&&inp.files[0];if(!f)return;readLogo(f,d=
 const delLogo=()=>{delete S.club.logo;save();render()};
 const setTheme=t=>{document.documentElement.dataset.theme=t;render()};
 const askReset=()=>ask('Restaurar os dados de exemplo deste clube? Suas alterações serão perdidas.',()=>{const lg=S.club.logo;DB.clubs[DB.cur]=seed();S=DB.clubs[DB.cur];if(lg)S.club.logo=lg;save();render()},'Restaurar');
-const delClub=()=>ask('Excluir o clube "'+esc(S.club.name)+'" e todos os seus dados?',()=>{delete DB.clubs[DB.cur];DB.cur=Object.keys(DB.clubs)[0];S=DB.clubs[DB.cur];save();go('dashboard')},'Excluir clube');
+async function removeStorageTree(bucket,path){
+ if(!sb)return;const {data,error}=await sb.storage.from(bucket).list(path,{limit:1000});
+ if(error){console.warn('Storage '+bucket+' não pôde ser listado:',error);return}
+ const files=[],folders=[];
+ (data||[]).forEach(x=>{const p=path+'/'+x.name;if(x.id)files.push(p);else folders.push(p)});
+ for(const folder of folders)await removeStorageTree(bucket,folder);
+ if(files.length){const {error:rmErr}=await sb.storage.from(bucket).remove(files);if(rmErr)console.warn('Falha ao remover arquivos de '+bucket,rmErr)}
+}
+async function deleteClubPermanent(){
+ if(!isActualAdmin())return note('Somente Presidente ou Vice-presidente podem excluir um clube.');
+ if(Object.keys(DB.clubs).length<=1)return note('Você precisa manter pelo menos um clube. Crie outro clube antes de excluir este.');
+ const clubId=DB.cur,name=S.club.name;
+ try{
+  await Promise.all([removeStorageTree('cm-media',clubId),removeStorageTree('cm-documents',clubId)]);
+  const {error}=await sb.from('cm_clubs').delete().eq('id',clubId);
+  if(error)throw error;
+  delete DB.clubs[clubId];_members=_members.filter(m=>m.club_id!==clubId);_clubMembers=[];_permUser='';_userPermDraft=null;_userPermDirty=false;
+  DB.cur=Object.keys(DB.clubs)[0];S=DB.clubs[DB.cur];const m=_members.find(x=>x.club_id===DB.cur);_actualRole=m&&m.role?m.role:'Presidente';DB.role=_actualRole;
+  try{localStorage.setItem(_cacheKey,JSON.stringify(DB))}catch(e){}
+  await cmLoadClubMembers(DB.cur);toast('Clube "'+name+'" excluído com sucesso.');go('dashboard')
+ }catch(e){console.error('Falha ao excluir clube:',e);note('Não consegui excluir o clube do banco. Nada foi removido localmente. Tente novamente.')}
+}
+const delClub=()=>ask('Excluir o clube <b>"'+esc(S.club.name)+'"</b> definitivamente?<br><span class="mute">O clube e os dados vinculados serão removidos do banco e não voltarão ao entrar novamente.</span>',()=>{deleteClubPermanent()},'Excluir clube');
 
 /* ---------- utilitários de lista, confirmação e exclusão ---------- */
 function manage(key,title){const d=$('#dlg');const draw=()=>{d.innerHTML=`<h2>${title}</h2><p class="mute">Remover uma opção só a tira das listas de filtro. Os registros existentes continuam.</p>${S.lists[key].map((o,i)=>`<div class="row" style="padding:5px 0"><span class="sp">${esc(o)}</span><button class="btn ghost sm" data-i="${i}">Remover</button></div>`).join('')||'<div class="empty">Lista vazia. Adicione uma opção.</div>'}<div class="row" style="margin-top:12px"><input id="mnew" placeholder="Nova opção"><button class="btn sm" id="madd">Adicionar</button></div><div class="row" style="margin-top:14px;justify-content:flex-end"><button class="btn" id="mdone">Concluir</button></div>`;
