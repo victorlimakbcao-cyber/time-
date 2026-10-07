@@ -719,7 +719,7 @@ async function cmSignOut(){
 const cmAccountHtml=()=>_authUser?`<div class="cm-account"><span class="cm-account-email" title="${esc(_authUser.email||'')}">${esc(_authUser.email||'Conta conectada')}</span><button class="btn ghost sm" style="width:100%;color:inherit;border-color:rgba(255,255,255,.35)" onclick="cmSignOut()">Sair da conta</button></div>`:'';
 const cmSettingsPayload=(clubId,state)=>({club_id:clubId,fee_value:+state.feeValue||0,fee_day:+state.feeDay||10,initial_balance:+state.initial||0,initial_account:state.initialAcc||null,rating_weights:state.weights||{coach:50,staff:30,players:20},min_rated:+state.minRated||3,lists:state.lists||{},extra:{hiddenRk:state.hiddenRk||[],rankOut:state.rankOut||[]}});
 async function cmBootstrapClub(localState){
- const st=localState&&localState.club?localState:blank('Meu Clube'),cl=st.club||{};
+ const st=localState&&localState.club?localState:blank('Meu Clube');normalizePerms(st);const cl=st.club||{};
  const {data:club,error:clubErr}=await sb.from('cm_clubs').insert({name:cl.name||'Meu Clube',sigla:cl.sigla||'MC',brand_color:cl.color||'#1F6B4A',accent_color:cl.accent||'#E8B923',created_by:_authUser.id}).select('id').single();
  if(clubErr)throw clubErr;
  const clubId=club.id;
@@ -794,7 +794,7 @@ async function loadSupabase(){
  try{
   await sb.from('cm_profiles').upsert({user_id:_authUser.id,full_name:_authUser.email?String(_authUser.email).split('@')[0]:null},{onConflict:'user_id'});
   const remote=await cmLoadRemoteDB();
-  setDB(remote);
+  setDB(remote);Object.values(DB.clubs).forEach(cl=>normalizePerms(cl));
   try{localStorage.setItem(_cacheKey,JSON.stringify(DB));if(_hadLegacy)localStorage.setItem('cm_v2:migrated_to',_authUser.id)}catch(e){}
   render();
  }catch(e){console.warn('Supabase load falhou:',e);cmAuthMsg('Falha ao carregar o backend do clube. Atualize a página e tente novamente.','bad');_sbLoaded=false}
