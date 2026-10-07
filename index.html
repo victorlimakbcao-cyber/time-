@@ -1,5 +1,8 @@
 <!DOCTYPE html>
-<html lang="pt-BR" style="--brand: #803333; --accent: #ff3300;"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<html lang="pt-BR" style="--brand: #803333; --accent: #ff3300;"><head>
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="theme-color" content="#1F6B4A">
@@ -727,6 +730,7 @@ img.sh.shk{opacity:1}
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+const CM_BUILD_VERSION='2026-10-07-link-auth-v2';
 const ICONS={dashboard:'<path d="M3 3h8v10H3zM13 3h8v6h-8zM13 11h8v10h-8zM3 15h8v6H3z"/>',partidas:'<circle cx="12" cy="12" r="9"/><path d="M12 7l4 3-1.5 5h-5L8 10z"/>',competicoes:'<path d="M7 4h10v5a5 5 0 01-10 0zM5 5H3v2a3 3 0 003 3M19 5h2v2a3 3 0 01-3 3M12 14v4M8 21h8"/>',elenco:'<circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-4 3-6 7-6s7 2 7 6M17 5a3 3 0 010 6M22 20c0-3-2-5-4-5.5"/>',campanha:'<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',estatisticas:'<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>',ranking:'<circle cx="12" cy="9" r="5"/><path d="M8.5 13.5L7 21l5-3 5 3-1.5-7.5"/>',calendario:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',financeiro:'<circle cx="12" cy="12" r="9"/><path d="M14.5 9c-.6-1-1.700-1.500-2.700-1.300-1.400.3-2 1.800-.8 2.700 1 .7 2.500.8 3.200 1.800.8 1.300-.3 2.700-1.800 2.800-1.100.1-2.200-.4-2.800-1.400M12 6v2M12 16v2"/>',patrocinadores:'<path d="M3 9l9-5 9 5-9 5zM6 12v5l6 3 6-3v-5"/>',contratos:'<path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h7"/>',documentos:'<path d="M3 6a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>',config:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>',mais:'<circle cx="5" cy="12" r="1.500"/><circle cx="12" cy="12" r="1.500"/><circle cx="19" cy="12" r="1.500"/>'};
 const NAV=[['dashboard','Dashboard'],['partidas','Partidas'],['elenco','Elenco'],['campanha','Campanha'],['estatisticas','Estatísticas'],['ranking','Ranking Geral'],['calendario','Calendário'],['competicoes','Competições'],['financeiro','Financeiro'],['patrocinadores','Patrocinadores'],['contratos','Contratos'],['documentos','Documentos'],['config','Configurações']];
 const MOB=['dashboard','partidas','elenco','financeiro'];
@@ -829,7 +833,7 @@ function cmAuthSetMode(mode){
  const labels={
   signin:['Acesse sua conta','Entre com seu e-mail e senha.'],
   signup:['Criar conta','Preencha seus dados para solicitar acesso ao Clube Manager.'],
-  verify:['Código de confirmação','Confirme seu e-mail antes de entrar na fila de aprovação.'],
+  verify:['Confirme seu Gmail','Valide seu e-mail pelo link recebido antes de entrar na fila de aprovação.'],
   forgot:['Esqueci minha senha','Recupere sua senha sem perder seus clubes, funções ou histórico.'],
   'recovery-sent':['Confira seu e-mail','Abra o link seguro enviado para continuar a recuperação.'],
   recovery:['Criar nova senha','Seu Gmail já foi validado. Defina sua nova senha.']
@@ -853,7 +857,7 @@ function cmValidEmail(v){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v||'').
 function cmSignupCooldown(seconds=75){_signupCooldownUntil=Date.now()+seconds*1000;try{localStorage.setItem('cm_signup_cooldown_until',String(_signupCooldownUntil))}catch(e){};cmUpdateResendTimer()}
 function cmUpdateResendTimer(){
  const b=$('#cmResendSignup');if(!b)return;const left=Math.max(0,Math.ceil((_signupCooldownUntil-Date.now())/1000));
- b.disabled=left>0;b.textContent=left>0?'Reenviar código em '+left+'s':'Não recebeu? Reenviar código';
+ b.disabled=left>0;b.textContent=left>0?'Reenviar e-mail em '+left+'s':'Não recebeu? Reenviar e-mail';
  if(left>0)setTimeout(cmUpdateResendTimer,1000)
 }
 function cmSignupFieldError(id,msg=''){const e=document.getElementById(id);if(e)e.textContent=msg}
@@ -877,22 +881,22 @@ async function cmAuthSubmit(mode){
   try{
    const {data,error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;
    rememberAccount(email);if(data.session){cmAuthShow(data.session);_sbLoaded=false;await loadSupabase();render()}
-  }catch(e){const msg=String(e&&e.message||'');if(/invalid login credentials/i.test(msg))cmAuthMsg('E-mail ou senha incorretos.','bad');else if(/email not confirmed/i.test(msg))cmAuthMsg('Confirme seu e-mail com o código enviado antes de entrar.','bad');else cmAuthMsg(msg||'Não foi possível entrar.','bad')}
+  }catch(e){const msg=String(e&&e.message||'');if(/invalid login credentials/i.test(msg))cmAuthMsg('E-mail ou senha incorretos.','bad');else if(/email not confirmed/i.test(msg))cmAuthMsg('Confirme seu e-mail pelo link enviado antes de entrar.','bad');else cmAuthMsg(msg||'Não foi possível entrar.','bad')}
   finally{cmAuthBusy(false)};return
  }
  const first=($('#cmAuthFirst')?.value||'').trim(),last=($('#cmAuthLast')?.value||'').trim(),email=($('#cmSignupEmail')?.value||'').trim().toLowerCase(),password=$('#cmSignupPassword')?.value||'',confirm=$('#cmSignupConfirm')?.value||'';
  if(!cmValidateSignup())return cmAuthMsg('Revise os campos destacados antes de continuar.','bad');
- if(_signupBusy)return;_signupBusy=true;cmAuthBusy(true);const sbt=$('#cmAuthSignup');if(sbt)sbt.textContent='Enviando código...';cmAuthMsg('Criando sua conta e enviando o código...');
+ if(_signupBusy)return;_signupBusy=true;cmAuthBusy(true);const sbt=$('#cmAuthSignup');if(sbt)sbt.textContent='Enviando e-mail...';cmAuthMsg('Criando sua conta e enviando o e-mail de confirmação...');
  try{
   const fullName=(first+' '+last).trim();
   const {data,error}=await sb.auth.signUp({email,password,options:{data:{first_name:first,last_name:last,full_name:fullName},emailRedirectTo:location.origin}});
   if(error)throw error;rememberAccount(email);_pendingSignupEmail=email;try{localStorage.setItem('cm_pending_signup_email',email)}catch(e){};cmSignupCooldown(75);
   if(data.session){await sb.auth.signOut({scope:'local'});cmAuthMsg('Seu e-mail já estava confirmado. Entre novamente para continuar.','ok');cmAuthSetMode('signin');return}
   const lab=$('#cmVerifyEmail');if(lab)lab.textContent=email;cmAuthSetMode('verify');cmAuthMsg('E-mail enviado. Abra sua caixa de entrada e clique no botão de confirmação.','ok')
- }catch(e){const msg=String(e&&e.message||'');if(/rate limit|too many requests/i.test(msg)){cmSignupCooldown(120);cmAuthMsg('O envio de e-mail está temporariamente limitado. Seu formulário foi preservado; aguarde o contador antes de tentar novamente.','bad')}else cmAuthMsg(msg||'Não foi possível criar a conta.','bad')}
+ }catch(e){const msg=String(e&&e.message||'');if(/rate limit|too many requests/i.test(msg)){cmSignupCooldown(120);cmAuthMsg('Não foi possível enviar o e-mail agora. O Supabase atingiu temporariamente o limite de envio. Seu formulário foi preservado; aguarde e tente novamente depois.','bad')}else cmAuthMsg(msg||'Não foi possível criar a conta.','bad')}
  finally{_signupBusy=false;cmAuthBusy(false);const sbt=$('#cmAuthSignup');if(sbt)sbt.textContent='Continuar';cmValidateSignup()}
 }
-function cmCancelPendingSignup(){try{localStorage.removeItem('cm_pending_signup_email');localStorage.removeItem('cm_signup_cooldown_until')}catch(e){};_pendingSignupEmail='';_signupCooldownUntil=0;cmClearCode('cmCode');cmAuthSetMode('signup')}
+function cmCancelPendingSignup(){try{localStorage.removeItem('cm_pending_signup_email');localStorage.removeItem('cm_signup_cooldown_until')}catch(e){};_pendingSignupEmail='';_signupCooldownUntil=0;cmAuthSetMode('signup')}
 async function cmResendSignupEmail(){
  if(!_pendingSignupEmail)return cmAuthSetMode('signup');
  if(Date.now()<_signupCooldownUntil){cmUpdateResendTimer();return cmAuthMsg('Aguarde o contador antes de solicitar outro e-mail.','bad')}
@@ -903,7 +907,7 @@ async function cmResendSignupEmail(){
   cmAuthMsg('E-mail reenviado. Abra sua caixa de entrada e clique no botão de confirmação.','ok')
  }catch(e){
   const msg=String(e&&e.message||'');
-  if(/rate limit|too many requests/i.test(msg)){cmSignupCooldown(120);cmAuthMsg('O envio está temporariamente limitado. Aguarde o contador e tente novamente.','bad')}
+  if(/rate limit|too many requests/i.test(msg)){cmSignupCooldown(120);cmAuthMsg('O Supabase atingiu temporariamente o limite de envio. Aguarde o contador antes de reenviar.','bad')}
   else cmAuthMsg(msg||'Não foi possível reenviar o e-mail.','bad')
  }
 }
@@ -920,7 +924,7 @@ async function cmSendRecoveryEmail(){
   cmAuthMsg('E-mail enviado. Abra sua caixa de entrada e clique no link de redefinição.','ok')
  }catch(e){
   const msg=String(e&&e.message||'');
-  cmAuthMsg(/rate limit|too many requests/i.test(msg)?'O envio está temporariamente limitado. Aguarde alguns minutos antes de tentar novamente.':msg||'Não foi possível enviar a recuperação.','bad')
+  cmAuthMsg(/rate limit|too many requests/i.test(msg)?'Não foi possível enviar o link agora. O Supabase atingiu temporariamente o limite de envio. Aguarde alguns minutos e tente novamente.':msg||'Não foi possível enviar a recuperação.','bad')
  }finally{if(b)b.disabled=false}
 }
 async function cmCompleteRecovery(){
