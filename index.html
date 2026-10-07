@@ -935,11 +935,14 @@ const cmAccountHtml=()=>_authUser?(()=>{
 })():'';
 const cmSettingsPayload=(clubId,state)=>({club_id:clubId,fee_value:+state.feeValue||0,fee_day:+state.feeDay||10,initial_balance:+state.initial||0,initial_account:state.initialAcc||null,rating_weights:state.weights||{coach:50,staff:30,players:20},min_rated:+state.minRated||3,lists:state.lists||{},extra:{hiddenRk:state.hiddenRk||[],rankOut:state.rankOut||[]}});
 function cmShowAccessGate(req){
- _accessRequest=req||null;const g=$('#cmAccessGate'),t=$('#cmAccessText');if(!g)return;
- const st=req&&req.status||'pending';
- if(t)t.textContent=st==='rejected'
-   ?'Seu pedido de acesso não foi aprovado. Fale com o administrador do clube para revisar seu cadastro.'
-   :'Seu e-mail foi confirmado. Agora seu cadastro está aguardando aprovação do Dono, Presidente ou Vice-presidente. Quando o acesso for liberado, entre novamente.';
+ _accessRequest=req||null;const g=$('#cmAccessGate'),t=$('#cmAccessText'),title=$('#cmAccessTitle');if(!g)return;
+ const st=req&&req.status||'pending',unassigned=st==='approved'&&!req?.assigned_club_id;
+ if(title)title.textContent=unassigned?'Você está sem clube':st==='rejected'?'Acesso não liberado':'Aguardando liberação';
+ if(t)t.textContent=unassigned
+   ?'Sua conta continua ativa, mas não está vinculada a nenhum clube. Você só poderá acessar o sistema quando o Dono vincular sua conta novamente a um clube.'
+   :st==='rejected'
+     ?'Seu pedido de acesso não foi aprovado. Fale com o Dono do sistema para revisar seu cadastro.'
+     :'Seu e-mail foi confirmado. Agora seu cadastro está aguardando aprovação do Dono do sistema. Quando o acesso for liberado, entre novamente.';
  g.hidden=false
 }
 function cmHideAccessGate(){const g=$('#cmAccessGate');if(g)g.hidden=true}
@@ -949,15 +952,19 @@ async function cmLoadOwnAccessRequest(){
  if(error)throw error;_accessRequest=data||null;return _accessRequest
 }
 async function cmLoadAccessRequests(){
- const anyAdmin=_members.some(m=>m.status==='active'&&(m.role==='Dono'||m.role==='Presidente'||m.role==='Vice-presidente'));
- if(!sb||!anyAdmin){_accessRequests=[];return[]}
- const {data,error}=await sb.from('cm_access_requests').select('id,user_id,email,full_name,status,requested_at,reviewed_at,assigned_club_id,assigned_role,note').eq('status','pending').order('requested_at',{ascending:true});
- if(error)throw error;_accessRequests=data||[];return _accessRequests
+ if(!sb||!isSystemOwner()){_accessRequests=[];return[]}
+ const {data,error}=await sb.from('cm_access_requests')
+   .select('id,user_id,email,full_name,status,requested_at,reviewed_at,assigned_club_id,assigned_role,note')
+   .in('status',['pending','approved'])
+   .order('requested_at',{ascending:true});
+ if(error)throw error;
+ _accessRequests=(data||[]).filter(r=>r.status==='pending'||(r.status==='approved'&&!r.assigned_club_id));
+ return _accessRequests
 }
 async function cmApproveAccess(id){
- if(!isActualAdmin())return note('Somente Dono, Presidente ou Vice-presidente podem aprovar acessos.');
+ if(!isSystemOwner())return note('Somente o Dono do sistema pode liberar usuários sem clube ou aprovar novos acessos.');
  const r=_accessRequests.find(x=>x.id===id);if(!r)return;
- const roles=Object.keys(S.perms||{}).filter(r=>r!=='Dono'),adminClubIds=new Set(_members.filter(m=>m.status==='active'&&(m.role==='Dono'||m.role==='Presidente'||m.role==='Vice-presidente')).map(m=>m.club_id)),clubs=Object.entries(DB.clubs).filter(([id])=>adminClubIds.has(id)).map(([id,st])=>[id,st.club.name+(st.club.demo?' · Demonstração':'')]);
+ const roles=Object.keys(S.perms||{}).filter(r=>r!=='Dono'),clubs=Object.entries(DB.clubs).map(([id,st])=>[id,st.club.name+(st.club.demo?' · Demonstração':'')]);
  if(!clubs.length)return note('Você não possui um clube administrável para vincular este usuário.');
  modal('Aprovar usuário',[
    {k:'club',l:'Clube',t:'sel',o:clubs,v:DB.cur},
@@ -979,7 +986,7 @@ async function cmApproveAccess(id){
   }catch(e){console.error(e);note('Não consegui aprovar este usuário. Tente novamente.')}})()})
 }
 async function cmRejectAccess(id){
- if(!isActualAdmin())return;
+ if(!isSystemOwner())return;
  const r=_accessRequests.find(x=>x.id===id);if(!r)return;
  ask('Recusar o acesso de <b>'+esc(r.full_name||r.email)+'</b>?',()=>{(async()=>{try{
    const {error}=await sb.from('cm_access_requests').update({status:'rejected',reviewed_at:new Date().toISOString(),reviewed_by:_authUser.id}).eq('id',id);
@@ -1011,11 +1018,11 @@ function cmDeleteMember(id){
  if(m.user_id===(_authUser&&_authUser.id))return note('Você não pode excluir seu próprio acesso por esta tela.');
  ask('Remover <b>'+esc(m.display_name||m.email||'este usuário')+'</b> do clube <b>'+esc(S.club.name)+'</b>?<br><span class="mute">A conta não será apagada; apenas o acesso a este clube será removido.</span>',()=>{(async()=>{try{
    const {error}=await sb.from('cm_members').delete().eq('id',m.id).eq('club_id',DB.cur);if(error)throw error;
-   _clubMembers=_clubMembers.filter(x=>x.id!==m.id);render();toast('Acesso do usuário removido deste clube.')
+   _clubMembers=_clubMembers.filter(x=>x.id!==m.id);if(isSystemOwner())await cmLoadAccessRequests();render();toast('Acesso removido. Se esse era o último clube do usuário, ele agora ficará bloqueado na tela “Você está sem clube”.')
   }catch(e){console.error(e);note(e&&e.message?e.message:'Não consegui remover este usuário.')}})()},'Remover acesso','REMOVER USUÁRIO')
 }
 async function cmDeleteAccount(id){
- if(!isActualAdmin())return note('Somente Dono, Presidente ou Vice-presidente podem excluir contas.');
+ if(!isSystemOwner())return note('Somente o Dono do sistema pode excluir contas definitivamente.');
  const m=_clubMembers.find(x=>x.id===id);if(!m)return;
  if(m.user_id===(_authUser&&_authUser.id))return note('Você não pode excluir sua própria conta por esta tela.');
  ask('Excluir definitivamente a conta de <b>'+esc(m.display_name||m.email||'este usuário')+'</b>?<br><span class="neg">A conta de login será apagada. Para voltar ao sistema, essa pessoa precisará criar uma nova conta, confirmar o código por e-mail e passar pela aprovação novamente.</span>',()=>{(async()=>{try{
@@ -1027,18 +1034,19 @@ function usersPanel(){
  if(!isActualAdmin())return'';
  const q=String(_memberFilter||'').trim().toLowerCase();
  const rows=_clubMembers.filter(m=>!q||[m.display_name,m.email,m.role].some(v=>String(v||'').toLowerCase().includes(q)));
- const desktop=rows.map(m=>`<tr><td><b>${esc(m.display_name||'Usuário')}</b><div class="mute" style="font-size:12px">${esc(m.email||'—')}</div></td><td>${esc(m.role==='Dono'?'Dono':m.role)}</td><td><span class="tag ${m.status==='active'?'ok':'neu'}">${m.status==='active'?'Ativo':esc(m.status)}</span></td><td><div class="cm-user-row-actions"><button class="btn ghost sm" onclick="cmEditMember('${m.id}')">Editar</button><button class="btn ghost sm" onclick="cmOpenUserPermissions('${m.user_id}')">Permissões</button>${m.role!=='Dono'&&m.user_id!==(_authUser&&_authUser.id)?`<button class="btn ghost sm" onclick="cmDeleteMember('${m.id}')">Remover do clube</button><button class="btn ghost sm" style="color:var(--neg)" onclick="cmDeleteAccount('${m.id}')">Excluir conta</button>`:''}</div></td></tr>`).join('');
- const mobile=rows.map(m=>`<div class="cm-user-mini"><span class="cm-user-avatar" style="background:var(--soft);color:var(--brand)">${esc((m.display_name||m.email||'US').split(/\s|@/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase())}</span><span class="cm-user-copy"><span class="cm-user-name">${esc(m.display_name||'Usuário')}</span><span class="mute" style="font-size:11px">${esc(m.email||'—')} · ${esc(m.role==='Dono'?'Dono':m.role)}</span></span><button class="btn ghost sm" onclick="cmEditMember('${m.id}')">Editar</button>${m.role!=='Dono'&&m.user_id!==(_authUser&&_authUser.id)?`<button class="btn ghost sm" onclick="cmDeleteMember('${m.id}')">Remover do clube</button><button class="btn ghost sm" style="color:var(--neg)" onclick="cmDeleteAccount('${m.id}')">Excluir conta</button>`:''}</div>`).join('');
+ const desktop=rows.map(m=>`<tr><td><b>${esc(m.display_name||'Usuário')}</b><div class="mute" style="font-size:12px">${esc(m.email||'—')}</div></td><td>${esc(m.role==='Dono'?'Dono':m.role)}</td><td><span class="tag ${m.status==='active'?'ok':'neu'}">${m.status==='active'?'Ativo':esc(m.status)}</span></td><td><div class="cm-user-row-actions"><button class="btn ghost sm" onclick="cmEditMember('${m.id}')">Editar</button><button class="btn ghost sm" onclick="cmOpenUserPermissions('${m.user_id}')">Permissões</button>${m.role!=='Dono'&&m.user_id!==(_authUser&&_authUser.id)?`<button class="btn ghost sm" onclick="cmDeleteMember('${m.id}')">Remover do clube</button>${isSystemOwner()?`<button class="btn ghost sm" style="color:var(--neg)" onclick="cmDeleteAccount('${m.id}')">Excluir conta</button>`:''}`:''}</div></td></tr>`).join('');
+ const mobile=rows.map(m=>`<div class="cm-user-mini"><span class="cm-user-avatar" style="background:var(--soft);color:var(--brand)">${esc((m.display_name||m.email||'US').split(/\s|@/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase())}</span><span class="cm-user-copy"><span class="cm-user-name">${esc(m.display_name||'Usuário')}</span><span class="mute" style="font-size:11px">${esc(m.email||'—')} · ${esc(m.role==='Dono'?'Dono':m.role)}</span></span><button class="btn ghost sm" onclick="cmEditMember('${m.id}')">Editar</button>${m.role!=='Dono'&&m.user_id!==(_authUser&&_authUser.id)?`<button class="btn ghost sm" onclick="cmDeleteMember('${m.id}')">Remover do clube</button>${isSystemOwner()?`<button class="btn ghost sm" style="color:var(--neg)" onclick="cmDeleteAccount('${m.id}')">Excluir conta</button>`:''}`:''}</div>`).join('');
  return `<div class="card" style="margin-top:12px"><div class="cm-users-head"><div><h3 style="margin:0">Usuários do clube <span class="tag neu">${_clubMembers.length}</span></h3><p class="mute" style="margin:4px 0 0">Edite nome, função e permissões. “Remover do clube” mantém a conta; “Excluir conta” obriga novo cadastro e nova aprovação.</p></div><div class="cm-users-tools"><input placeholder="Buscar usuário..." value="${esc(_memberFilter)}" oninput="_memberFilter=this.value;render()"></div></div>
  <div class="wrap cm-users-table" style="margin-top:10px"><table class="tbl"><tr><th>Usuário</th><th>Função</th><th>Status</th><th>Ações</th></tr>${desktop||'<tr><td colspan="4" class="empty">Nenhum usuário encontrado.</td></tr>'}</table></div>
  <div class="cm-user-card-list">${mobile||'<div class="empty">Nenhum usuário encontrado.</div>'}</div></div>`
 }
 function accessRequestsPanel(){
- const anyAdmin=_members.some(m=>m.status==='active'&&(m.role==='Dono'||m.role==='Presidente'||m.role==='Vice-presidente'));if(!anyAdmin)return'';
- const rows=_accessRequests.map(r=>`<tr><td><b>${esc(r.full_name||'Sem nome')}</b><div class="mute" style="font-size:12px">${esc(r.email)}</div></td><td>${new Date(r.requested_at).toLocaleString('pt-BR')}</td><td><div class="cm-pending-actions"><button class="btn sm" onclick="cmApproveAccess('${r.id}')">Aprovar</button><button class="btn ghost sm" onclick="cmRejectAccess('${r.id}')">Recusar</button></div></td></tr>`).join('');
- return `<div class="card cm-pending" style="margin-top:12px"><div class="row"><div><h3 style="margin:0">Usuários pendentes</h3><p class="mute" style="margin:4px 0 0">Apenas usuários aprovados podem acessar o sistema.</p></div><span class="sp"></span>${_accessRequests.length?`<span class="cm-request-badge">${_accessRequests.length}</span>`:''}</div>${rows?`<div class="wrap" style="margin-top:10px"><table class="tbl"><tr><th>Usuário</th><th>Solicitado em</th><th>Ações</th></tr>${rows}</table></div>`:'<div class="empty">Nenhum usuário aguardando aprovação.</div>'}</div>`
+ if(!isSystemOwner())return'';
+ const rows=_accessRequests.map(r=>{const noClub=r.status==='approved'&&!r.assigned_club_id,label=noClub?'Sem clube':'Aguardando aprovação';return `<tr><td><b>${esc(r.full_name||'Sem nome')}</b><div class="mute" style="font-size:12px">${esc(r.email)}</div></td><td><span class="tag ${noClub?'neu':'warn'}">${label}</span></td><td>${new Date(r.requested_at).toLocaleString('pt-BR')}</td><td><div class="cm-pending-actions"><button class="btn sm" onclick="cmApproveAccess('${r.id}')">${noClub?'Vincular a clube':'Aprovar'}</button>${!noClub?`<button class="btn ghost sm" onclick="cmRejectAccess('${r.id}')">Recusar</button>`:''}</div></td></tr>`}).join('');
+ return `<div class="card cm-pending" style="margin-top:12px"><div class="row"><div><h3 style="margin:0">Controle de acesso</h3><p class="mute" style="margin:4px 0 0">Somente o Dono pode aprovar novos usuários ou devolver acesso a contas que ficaram sem clube.</p></div><span class="sp"></span>${_accessRequests.length?`<span class="cm-request-badge">${_accessRequests.length}</span>`:''}</div>${rows?`<div class="wrap" style="margin-top:10px"><table class="tbl"><tr><th>Usuário</th><th>Status</th><th>Solicitado em</th><th>Ações</th></tr>${rows}</table></div>`:'<div class="empty">Nenhum usuário aguardando aprovação ou sem clube.</div>'}</div>`
 }
 async function cmBootstrapClub(localState,opts={}){
+ if(!isSystemOwner())throw new Error('Somente o Dono do sistema pode criar clubes.');
  const st=localState&&localState.club?localState:blank(opts.isDemo?'Meu Clube':'Novo Clube');normalizePerms(st);const cl=st.club||{};
  if(opts.isDemo){cl.name='Meu Clube';cl.sigla='MC';cl.demo=true}
  const {data:club,error:clubErr}=await sb.from('cm_clubs').insert({name:cl.name||'Meu Clube',sigla:cl.sigla||'MC',brand_color:cl.color||'#1F6B4A',accent_color:cl.accent||'#E8B923',created_by:_authUser.id,is_demo:!!opts.isDemo}).select('id').single();
@@ -1066,6 +1074,7 @@ async function cmAvailableUsers(){
  return[...map.values()]
 }
 async function cmEnsureDemoClub(){
+ if(!isSystemOwner())return null;
  if(Object.values(DB.clubs).some(x=>x&&x.club&&x.club.demo))return null;
  const {data:remote,error}=await sb.from('cm_clubs').select('id,name,sigla,brand_color,accent_color,is_demo').eq('created_by',_authUser.id).eq('is_demo',true).is('deleted_at',null).maybeSingle();
  if(error)throw error;
@@ -1111,7 +1120,7 @@ async function cmLoadRemoteDB(){
  const {data:members,error:memErr}=await sb.from('cm_members').select('id,club_id,user_id,role,status,display_name,email,permissions').eq('user_id',_authUser.id).eq('status','active');
  if(memErr)throw memErr;
  _members=members||[];
- if(!_members.length){_actualRole='';await cmLoadOwnAccessRequest();return null;}
+ if(!_members.length){_actualRole='';DB.role='';_clubMembers=[];try{localStorage.removeItem(_cacheKey)}catch(e){};await cmLoadOwnAccessRequest();return null;}
  const ids=_members.map(m=>m.club_id);
  const [{data:clubs,error:clubErr},{data:states,error:stateErr}]=await Promise.all([
   sb.from('cm_clubs').select('id,name,sigla,brand_color,accent_color,logo_path,is_demo').in('id',ids).is('deleted_at',null),
@@ -1119,7 +1128,7 @@ async function cmLoadRemoteDB(){
  ]);
  if(clubErr)throw clubErr;if(stateErr)throw stateErr;
  const byState=new Map((states||[]).map(x=>[x.club_id,x.data])),byClub=new Map((clubs||[]).map(x=>[x.id,x]));
- const out={cur:'',role:'Presidente',clubs:{}};
+ const out={cur:'',role:'',clubs:{}};
  for(const m of _members){
   const cl=byClub.get(m.club_id);if(!cl)continue;
   let st=byState.get(m.club_id);
@@ -1179,7 +1188,7 @@ async function loadSupabase(){
   await sb.from('cm_profiles').upsert({user_id:_authUser.id,full_name:_authUser.email?String(_authUser.email).split('@')[0]:null},{onConflict:'user_id'});
   const remote=await cmLoadRemoteDB();
   if(!remote){cmShowAccessGate(_accessRequest);return}
-  cmHideAccessGate();setDB(remote);Object.values(DB.clubs).forEach(cl=>normalizePerms(cl));await cmEnsureDemoClub();if(!DB.cur||!DB.clubs[DB.cur])DB.cur=Object.keys(DB.clubs)[0];S=DB.clubs[DB.cur];await cmLoadClubMembers(DB.cur);
+  cmHideAccessGate();setDB(remote);Object.values(DB.clubs).forEach(cl=>normalizePerms(cl));if(isSystemOwner())await cmEnsureDemoClub();if(!DB.cur||!DB.clubs[DB.cur])DB.cur=Object.keys(DB.clubs)[0];S=DB.clubs[DB.cur];await cmLoadClubMembers(DB.cur);
   await cmLoadAccessRequests();
   try{localStorage.setItem(_cacheKey,JSON.stringify(DB));if(_hadLegacy)localStorage.setItem('cm_v2:migrated_to',_authUser.id)}catch(e){}
   render();
@@ -1226,6 +1235,7 @@ Object.values(DB.clubs).forEach(c=>fixPos(c));
    Demais funções começam em somente visualização; o administrador pode personalizar por módulo e ação. */
 const PERM_ACTIONS=['view','create','edit','delete'];
 const ADMIN_ROLES=['Dono','Presidente','Vice-presidente'];
+const isSystemOwner=()=>_actualRole==='Dono';
 const isAdminRole=r=>ADMIN_ROLES.includes(r||DB.role);
 const isActualAdmin=()=>ADMIN_ROLES.includes(_actualRole);
 const fullPerm=()=>({view:true,create:true,edit:true,delete:true});
@@ -1247,6 +1257,7 @@ function normalizePerms(C,forceDefault=false){
 {let ch=false;Object.values(DB.clubs).forEach(cl=>{if(normalizePerms(cl))ch=true});if(ch)save()}
 const canDo=(k,a='view',role=DB.role)=>{
  if(k==='menu')return a==='view';
+ if(role==='Dono'&&!isSystemOwner())return false;
  if(ADMIN_ROLES.includes(role))return true;
  if(role===_actualRole){
   const ov=userOverride(k,a);
@@ -1260,7 +1271,7 @@ const requirePerm=(mod,act,msg)=>{if(canDo(mod,act))return true;note(msg||'Sua f
 
 function blank(name){const d=seed();return{...d,club:{...d.club,name,sigla:name.slice(0,2).toUpperCase()},players:[],matches:[],events:[],tx:[],fees:{[TODAY.slice(0,7)]:{}},comps:[],sponsors:[],contracts:[],docs:[],staff:[]}}
 async function newClubDialog(){
- if(!isActualAdmin())return note('Somente Dono, Presidente ou Vice-presidente podem criar um novo clube.');
+ if(!isSystemOwner())return note('Somente o Dono do sistema pode criar novos clubes.');
  try{
   const users=await cmAvailableUsers(),roles=Object.keys(S.perms).filter(r=>r!=='Dono');
   const userOpts=users.map(u=>[u.user_id,(u.display_name||'Usuário')+(u.user_id===_authUser.id?' (você)':'')]);
@@ -1431,10 +1442,11 @@ let view='dashboard',sub='',ctx={};
 function go(v,s='',c={}){view=v;sub=s;ctx=c;render();window.scrollTo(0,0)}
 function switchers(){
  const so='style="background:var(--surface);color:var(--ink);margin-top:4px"';
- const clubNew=isActualAdmin()?'<option value="__new">＋ Novo clube</option>':'';
- const roleCtl=isActualAdmin()?`<label style="color:inherit;opacity:.8">Ver como (função)</label><select ${so} onchange="setRole(this.value)">${Object.keys(S.perms).map(r=>`<option ${r===DB.role?'selected':''}>${r}</option>`).join('')}</select>`:`<label style="color:inherit;opacity:.8">Função</label><div style="margin-top:4px;font-weight:700">${esc(_actualRole)}</div>`;
+ const clubNew=isSystemOwner()?'<option value="__new">＋ Novo clube</option>':'';
+ const simRoles=Object.keys(S.perms).filter(r=>isSystemOwner()||r!=='Dono');
+ const roleCtl=isActualAdmin()?`<label style="color:inherit;opacity:.8">Ver como (função)</label><select ${so} onchange="setRole(this.value)">${simRoles.map(r=>`<option ${r===DB.role?'selected':''}>${r}</option>`).join('')}</select>`:`<label style="color:inherit;opacity:.8">Função</label><div style="margin-top:4px;font-weight:700">${esc(_actualRole)}</div>`;
  return `<label style="color:inherit;opacity:.8">Clube</label><select ${so} onchange="switchClub(this.value)">${Object.keys(DB.clubs).map(k=>`<option value="${k}" ${k===DB.cur?'selected':''}>${esc(DB.clubs[k].club.name)}${DB.clubs[k].club.demo?' · Demonstração':''}</option>`).join('')}${clubNew}</select>${roleCtl}`}
-function setRole(r){if(!isActualAdmin())return;DB.role=S.perms[r]?r:_actualRole;try{localStorage.setItem(_cacheKey,JSON.stringify(DB))}catch(e){}render()}
+function setRole(r){if(!isActualAdmin())return;if(r==='Dono'&&!isSystemOwner())return note('A função Dono é exclusiva do usuário principal do sistema.');DB.role=S.perms[r]?r:_actualRole;try{localStorage.setItem(_cacheKey,JSON.stringify(DB))}catch(e){}render()}
 function shell(){
  const items=NAV.filter(([k])=>can(k)).map(([k,l])=>`<a class="${view===k?'on':''}" onclick="go('${k}')">${ic(k)}${l}</a>`).join('');
  $('#side').innerHTML=`<div class="brand">${logo(38,44)}<b>${esc(S.club.name)}${S.club.demo?' <small style="font-size:10px;opacity:.8">DEMO</small>':''}</b></div><div class="nav">${items}</div><div style="margin-top:auto;padding:8px">${switchers()}${cmAccountHtml()}</div>`;
@@ -1666,7 +1678,7 @@ function resetUserPermissions(){
  _userRoleDraft=m.role;_userPermDraft=effectiveUserMatrix({...m,permissions:{}},m.role);_userPermDirty=true;render()
 }
 function permPanel(){
- normalizePerms(S);const roles=Object.keys(S.perms);
+ normalizePerms(S);const roles=Object.keys(S.perms).filter(r=>isSystemOwner()||r!=='Dono');
  if(!roles.includes(_permRole)||ADMIN_ROLES.includes(_permRole))_permRole=roles.find(r=>!ADMIN_ROLES.includes(r))||roles[0];
  if(_permMode==='user'){
   const m=_clubMembers.find(x=>x.user_id===_permUser)||null;
