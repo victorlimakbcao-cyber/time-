@@ -770,7 +770,7 @@ const SUPABASE_KEY='sb_publishable_QObRfLJxDi9Kh8-nNLoJYA_pQ3feKBY';
 const sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
 const LEGACY_CACHE_KEY='cm_v2';
 const _legacyRaw=localStorage.getItem(LEGACY_CACHE_KEY),_hadLegacy=!!_legacyRaw;
-let _cacheKey=LEGACY_CACHE_KEY,_authUser=null,_sbTimer=null,_sbBusy=false,_sbLoaded=false,_authMode='signin',_pendingSignupEmail='',_recoveryEmail='',_memberFilter='',_members=[],_clubMembers=[],_accessRequests=[],_accessRequest=null,_actualRole='Presidente',_permRole='Staff',_permMode='role',_permUser='',_userRoleDraft='',_userPermDraft=null,_userPermDirty=false;
+let _cacheKey=LEGACY_CACHE_KEY,_authUser=null,_sbTimer=null,_sbBusy=false,_sbLoaded=false,_authMode='signin',_pendingSignupEmail='',_recoveryEmail='',_recoveryVerified=false,_memberFilter='',_members=[],_clubMembers=[],_accessRequests=[],_accessRequest=null,_actualRole='Presidente',_permRole='Staff',_permMode='role',_permUser='',_userRoleDraft='',_userPermDraft=null,_userPermDirty=false;
 let DB;try{DB=_legacyRaw?JSON.parse(_legacyRaw):null}catch(e){}
 if(!DB||!DB.clubs)DB={cur:'c1',role:'Presidente',clubs:{c1:seed()}};
 let S=DB.clubs[DB.cur];
@@ -865,15 +865,20 @@ async function cmSendRecoveryCode(){
  }catch(e){const msg=String(e&&e.message||'');cmAuthMsg(/rate limit/i.test(msg)?'Aguarde alguns minutos antes de pedir outro código.':msg||'Não foi possível enviar a recuperação.','bad')}
 }
 async function cmCompleteRecovery(){
- const email=_recoveryEmail,token=cmReadCode('cmRecCode'),p=$('#cmNewPassword')?.value||'',c2=$('#cmNewPasswordConfirm')?.value||'';
- if(!email||token.length!==6)return cmAuthMsg('Digite o código completo de 6 dígitos.','bad');if(p.length<6)return cmAuthMsg('A nova senha precisa ter pelo menos 6 caracteres.','bad');if(p!==c2)return cmAuthMsg('As duas novas senhas precisam ser iguais.','bad');
- cmAuthMsg('Validando código...');
+ const email=_recoveryEmail||(_authUser&&_authUser.email)||'',token=cmReadCode('cmRecCode'),p=$('#cmNewPassword')?.value||'',c2=$('#cmNewPasswordConfirm')?.value||'';
+ if(!_recoveryVerified&&(!email||token.length!==6))return cmAuthMsg('Digite o código completo de 6 dígitos.','bad');
+ if(p.length<6)return cmAuthMsg('A nova senha precisa ter pelo menos 6 caracteres.','bad');if(p!==c2)return cmAuthMsg('As duas novas senhas precisam ser iguais.','bad');
+ cmAuthMsg(_recoveryVerified?'Atualizando senha...':'Validando código...');
  try{
-  const {data,error}=await sb.auth.verifyOtp({email,token,type:'recovery'});if(error)throw error;
-  if(!data.session)throw new Error('Sessão de recuperação não criada.');
+  let session=null;
+  if(!_recoveryVerified){
+   const vr=await sb.auth.verifyOtp({email,token,type:'recovery'});if(vr.error)throw vr.error;session=vr.data.session;if(!session)throw new Error('Sessão de recuperação não criada.')
+  }else{
+   const gs=await sb.auth.getSession();session=gs.data.session;if(!session)throw new Error('Sessão de recuperação não encontrada.')
+  }
   const up=await sb.auth.updateUser({password:p});if(up.error)throw up.error;
-  rememberAccount(email);cmAuthShow(data.session);_sbLoaded=false;await loadSupabase();render();toast('Senha atualizada. Seus dados e permissões foram mantidos.')
- }catch(e){console.error(e);cmAuthMsg('Código inválido ou expirado. Solicite um novo código e tente novamente.','bad')}
+  _recoveryVerified=false;rememberAccount(email);cmAuthShow(session);_sbLoaded=false;await loadSupabase();render();toast('Senha atualizada. Seus dados e permissões foram mantidos.')
+ }catch(e){console.error(e);cmAuthMsg(_recoveryVerified?'Não foi possível atualizar a senha. Tente novamente.':'Código inválido ou expirado. Solicite um novo código e tente novamente.','bad')}
 }
 async function cmSignOut(){
  if(!sb)return;
@@ -1155,7 +1160,14 @@ async function cmAuthInit(){
  if(session)await loadSupabase();
 }
 if(sb){
- sb.auth.onAuthStateChange((event,session)=>{setTimeout(async()=>{_sbLoaded=false;cmAuthShow(session);if(session)await loadSupabase()},0)});
+ sb.auth.onAuthStateChange((event,session)=>{setTimeout(async()=>{
+  if(event==='PASSWORD_RECOVERY'&&session){
+   _authUser=session.user;_recoveryEmail=session.user.email||_recoveryEmail;_recoveryVerified=true;
+   const g=$('#cmAuthGate');if(g)g.hidden=false;const ag=$('#cmAccessGate');if(ag)ag.hidden=true;
+   const l=$('#cmRecoveryEmailLabel');if(l)l.textContent=_recoveryEmail;cmClearCode('cmRecCode');cmAuthSetMode('recovery');cmAuthMsg('E-mail validado. Cadastre sua nova senha.','ok');return
+  }
+  _sbLoaded=false;cmAuthShow(session);if(session)await loadSupabase()
+ },0)});
  cmAuthInit();
 }
 
