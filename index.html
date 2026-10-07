@@ -796,7 +796,12 @@ async function cmEnsureDemoClub(){
   const st=state&&state.data&&state.data.club?state.data:seed();st.club={...st.club,name:'Meu Clube',sigla:'MC',demo:true};
   DB.clubs[remote.id]=st;
   if(!_members.some(m=>m.club_id===remote.id)){
-   const {data:me}=await sb.from('cm_members').select('id,club_id,user_id,role,status,display_name,permissions').eq('club_id',remote.id).eq('user_id',_authUser.id).maybeSingle();
+   let {data:me,error:meErr}=await sb.from('cm_members').select('id,club_id,user_id,role,status,display_name,permissions').eq('club_id',remote.id).eq('user_id',_authUser.id).maybeSingle();
+   if(meErr)throw meErr;
+   if(!me){
+    const ins=await sb.from('cm_members').insert({club_id:remote.id,user_id:_authUser.id,role:'Presidente',status:'active',display_name:_authUser.email||'Presidente'}).select('id,club_id,user_id,role,status,display_name,permissions').single();
+    if(ins.error)throw ins.error;me=ins.data
+   }
    if(me)_members.push(me)
   }
   return remote.id
@@ -809,7 +814,12 @@ async function cmEnsureDemoClub(){
  return b.clubId
 }
 async function cmBootstrapAccount(){
- const source=_hadLegacy&&DB&&DB.clubs?DB:{cur:'c1',role:'Presidente',clubs:{c1:blank('Meu Clube')}};
+ if(!_hadLegacy){
+  const demo=seed();demo.club={...demo.club,name:'Meu Clube',sigla:'MC',demo:true};
+  const b=await cmBootstrapClub(demo,{isDemo:true});
+  return{cur:b.clubId,role:'Presidente',clubs:{[b.clubId]:b.state}}
+ }
+ const source=DB&&DB.clubs?DB:{cur:'c1',role:'Presidente',clubs:{}};
  const out={cur:'',role:'Presidente',clubs:{}};
  for(const [localKey,state] of Object.entries(source.clubs)){
   const b=await cmBootstrapClub(state);
