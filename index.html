@@ -657,39 +657,56 @@ img.sh.shk{opacity:1}
       <div class="cm-pass"><input id="cmSignupPassword" type="password" autocomplete="new-password" minlength="6" placeholder="Mínimo de 6 caracteres" oninput="cmValidateSignup()"><button class="cm-pass-eye" type="button" aria-label="Mostrar ou ocultar senha" onclick="cmTogglePassword('cmSignupPassword',this)">◉</button></div><div id="cmErrPassword" class="cm-field-error"></div>
       <label for="cmSignupConfirm">Confirmar senha</label>
       <div class="cm-pass"><input id="cmSignupConfirm" type="password" autocomplete="new-password" minlength="6" placeholder="Digite a senha novamente" oninput="cmValidateSignup()"><button class="cm-pass-eye" type="button" aria-label="Mostrar ou ocultar senha" onclick="cmTogglePassword('cmSignupConfirm',this)">◉</button></div><div id="cmErrConfirm" class="cm-field-error"></div>
-      <p class="cm-auth-help">Após criar a conta, você confirma o e-mail com um código de 6 dígitos. Só depois seu cadastro aparece para aprovação do Dono/Presidente/Vice-presidente.</p>
+      <p class="cm-auth-help">Após criar a conta, enviaremos um e-mail de validação. Clique em “Confirmar meu e-mail” no Gmail. Depois disso, sua conta ficará aguardando aprovação do Dono.</p>
       <div class="cm-auth-actions single"><button class="btn cm-auth-submit" id="cmAuthSignup" type="button" onclick="cmAuthSubmit('signup')">Continuar</button></div>
       <button class="cm-auth-link cm-auth-switch" type="button" onclick="cmAuthSetMode('signin')">Já tenho uma conta · Entrar</button>
     </div>
 
     <div id="cmPanelVerify" class="cm-auth-panel" hidden>
-      <h3 style="margin:0 0 6px">Verifique seu e-mail</h3>
-      <p class="cm-auth-help">Enviamos um código de 6 dígitos para <b id="cmVerifyEmail"></b>. Digite o código abaixo.</p>
-      <div id="cmSignupCode" class="cm-code"><input id="cmCode0" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="cmCodeMove(this,0,'cmCode')" onkeydown="cmCodeBack(event,0,'cmCode')"><input id="cmCode1" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="cmCodeMove(this,1,'cmCode')" onkeydown="cmCodeBack(event,1,'cmCode')"><input id="cmCode2" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="cmCodeMove(this,2,'cmCode')" onkeydown="cmCodeBack(event,2,'cmCode')"><input id="cmCode3" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="cmCodeMove(this,3,'cmCode')" onkeydown="cmCodeBack(event,3,'cmCode')"><input id="cmCode4" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="cmCodeMove(this,4,'cmCode')" onkeydown="cmCodeBack(event,4,'cmCode')"><input id="cmCode5" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="cmCodeMove(this,5,'cmCode')" onkeydown="cmCodeBack(event,5,'cmCode')"></div>
-      <button id="cmResendSignup" class="cm-auth-link cm-auth-switch cm-resend" type="button" onclick="cmResendSignupCode()">Não recebeu? Reenviar código</button>
-      <div class="cm-auth-actions single"><button class="btn" type="button" onclick="cmVerifySignupCode()">Confirmar código</button></div>
+      <h3 style="margin:0 0 6px">Confirme seu Gmail</h3>
+      <p class="cm-auth-help">Enviamos uma mensagem para <b id="cmVerifyEmail"></b>.</p>
+      <div class="cm-access-card" style="box-shadow:none;border:1px solid var(--line);margin:12px 0;padding:16px">
+        <div class="cm-access-ico">✉</div>
+        <h3 style="margin:0 0 6px">Abra seu e-mail</h3>
+        <p class="cm-auth-help" style="margin:0">Clique no botão de confirmação enviado pelo Supabase para validar que este Gmail realmente pertence a você.</p>
+      </div>
+      <p class="cm-auth-help">Depois de confirmar o e-mail, volte para esta página. Sua conta ficará aguardando aprovação do Dono.</p>
+      <button id="cmResendSignup" class="cm-auth-link cm-auth-switch cm-resend" type="button" onclick="cmResendSignupEmail()">Não recebeu? Reenviar e-mail</button>
+      <div class="cm-auth-actions single"><button class="btn" type="button" onclick="location.reload()">Já confirmei · verificar acesso</button></div>
       <button class="cm-auth-link cm-auth-switch" type="button" onclick="cmCancelPendingSignup()">Voltar e corrigir e-mail</button>
     </div>
 
     <div id="cmPanelForgot" class="cm-auth-panel" hidden>
       <h3 style="margin:0 0 6px">Recuperar senha</h3>
-      <p class="cm-auth-help">Digite o Gmail/e-mail da sua conta para receber o código de recuperação.</p>
+      <p class="cm-auth-help">Digite o e-mail da sua conta. Enviaremos um link seguro para confirmar que o Gmail pertence a você.</p>
       <label for="cmRecoveryEmail">E-mail</label>
       <input id="cmRecoveryEmail" type="email" autocomplete="email" inputmode="email" placeholder="seu@gmail.com">
-      <div class="cm-auth-actions single"><button class="btn" type="button" onclick="cmSendRecoveryCode()">Enviar código</button></div>
+      <div class="cm-auth-actions single"><button class="btn" id="cmRecoverySend" type="button" onclick="cmSendRecoveryEmail()">Enviar e-mail de recuperação</button></div>
+      <button class="cm-auth-link cm-auth-switch" type="button" onclick="cmAuthSetMode('signin')">Voltar para o login</button>
+    </div>
+
+    <div id="cmPanelRecoverySent" class="cm-auth-panel" hidden>
+      <h3 style="margin:0 0 6px">Confira seu e-mail</h3>
+      <p class="cm-auth-help">Enviamos um link seguro para <b id="cmRecoverySentEmail"></b>.</p>
+      <div class="cm-access-card" style="box-shadow:none;border:1px solid var(--line);margin:12px 0;padding:16px">
+        <div class="cm-access-ico">✉</div>
+        <h3 style="margin:0 0 6px">Abra o Gmail</h3>
+        <p class="cm-auth-help" style="margin:0">Clique em “Redefinir senha” no e-mail. Você voltará automaticamente para o Clube Manager para cadastrar a nova senha.</p>
+      </div>
+      <button class="cm-auth-link cm-auth-switch" type="button" onclick="cmSendRecoveryEmail()">Reenviar e-mail</button>
       <button class="cm-auth-link cm-auth-switch" type="button" onclick="cmAuthSetMode('signin')">Voltar para o login</button>
     </div>
 
     <div id="cmPanelRecovery" class="cm-auth-panel" hidden>
-      <h3 style="margin:0 0 6px">Redefinir senha</h3>
-      <p class="cm-auth-help">Digite o código enviado para <b id="cmRecoveryEmailLabel"></b> e escolha uma nova senha.</p>
-      <div id="cmRecoveryCode" class="cm-code"><input id="cmRecCode0" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="cmCodeMove(this,0,'cmRecCode')" onkeydown="cmCodeBack(event,0,'cmRecCode')"><input id="cmRecCode1" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="cmCodeMove(this,1,'cmRecCode')" onkeydown="cmCodeBack(event,1,'cmRecCode')"><input id="cmRecCode2" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="cmCodeMove(this,2,'cmRecCode')" onkeydown="cmCodeBack(event,2,'cmRecCode')"><input id="cmRecCode3" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="cmCodeMove(this,3,'cmRecCode')" onkeydown="cmCodeBack(event,3,'cmRecCode')"><input id="cmRecCode4" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="cmCodeMove(this,4,'cmRecCode')" onkeydown="cmCodeBack(event,4,'cmRecCode')"><input id="cmRecCode5" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="cmCodeMove(this,5,'cmRecCode')" onkeydown="cmCodeBack(event,5,'cmRecCode')"></div>
+      <h3 style="margin:0 0 6px">Criar nova senha</h3>
+      <p class="cm-auth-help">Seu e-mail foi validado. Cadastre uma nova senha para continuar usando a mesma conta.</p>
+      <div class="tag ok" style="margin:8px 0 12px">✓ Gmail confirmado</div>
+      <div id="cmRecoveryEmailLabel" class="cm-auth-help" style="font-weight:700;margin-bottom:10px"></div>
       <label for="cmNewPassword">Nova senha</label>
       <div class="cm-pass"><input id="cmNewPassword" type="password" autocomplete="new-password" minlength="6" placeholder="Nova senha"><button class="cm-pass-eye" type="button" aria-label="Mostrar ou ocultar senha" onclick="cmTogglePassword('cmNewPassword',this)">◉</button></div>
       <label for="cmNewPasswordConfirm">Confirmar nova senha</label>
       <div class="cm-pass"><input id="cmNewPasswordConfirm" type="password" autocomplete="new-password" minlength="6" placeholder="Repita a nova senha"><button class="cm-pass-eye" type="button" aria-label="Mostrar ou ocultar senha" onclick="cmTogglePassword('cmNewPasswordConfirm',this)">◉</button></div>
-      <div class="cm-auth-actions single"><button class="btn" type="button" onclick="cmCompleteRecovery()">Redefinir senha</button></div>
-      <button class="cm-auth-link cm-auth-switch" type="button" onclick="cmSendRecoveryCode()">Reenviar código</button>
+      <div class="cm-auth-actions single"><button class="btn" type="button" onclick="cmCompleteRecovery()">Salvar nova senha</button></div>
     </div>
 
     <div id="cmAuthMsg" class="cm-auth-msg" role="status" aria-live="polite"></div>
@@ -805,8 +822,8 @@ function cmCodeBack(e,index,prefix){if(e.key==='Backspace'&&!e.target.value&&ind
 function cmReadCode(prefix){return Array.from({length:6},(_,i)=>(document.getElementById(prefix+i)?.value||'')).join('')}
 function cmClearCode(prefix){for(let i=0;i<6;i++){const e=document.getElementById(prefix+i);if(e)e.value=''}}
 function cmAuthSetMode(mode){
- const allowed=['signin','signup','verify','forgot','recovery'];_authMode=allowed.includes(mode)?mode:'signin';
- const map={signin:'cmPanelSignin',signup:'cmPanelSignup',verify:'cmPanelVerify',forgot:'cmPanelForgot',recovery:'cmPanelRecovery'};
+ const allowed=['signin','signup','verify','forgot','recovery-sent','recovery'];_authMode=allowed.includes(mode)?mode:'signin';
+ const map={signin:'cmPanelSignin',signup:'cmPanelSignup',verify:'cmPanelVerify',forgot:'cmPanelForgot','recovery-sent':'cmPanelRecoverySent',recovery:'cmPanelRecovery'};
  document.querySelectorAll('.cm-auth-panel').forEach(x=>x.hidden=true);const p=document.getElementById(map[_authMode]);if(p)p.hidden=false;
  const title=$('#cmAuthTitle'),sub=$('#cmAuthSub');
  const labels={
@@ -814,7 +831,8 @@ function cmAuthSetMode(mode){
   signup:['Criar conta','Preencha seus dados para solicitar acesso ao Clube Manager.'],
   verify:['Código de confirmação','Confirme seu e-mail antes de entrar na fila de aprovação.'],
   forgot:['Esqueci minha senha','Recupere sua senha sem perder seus clubes, funções ou histórico.'],
-  recovery:['Redefinir senha','Confirme o código recebido e cadastre uma nova senha.']
+  'recovery-sent':['Confira seu e-mail','Abra o link seguro enviado para continuar a recuperação.'],
+  recovery:['Criar nova senha','Seu Gmail já foi validado. Defina sua nova senha.']
  };
  if(title)title.textContent=labels[_authMode][0];if(sub)sub.textContent=labels[_authMode][1];
  if(_authMode==='signup')setTimeout(cmValidateSignup,0);if(_authMode==='verify')setTimeout(cmUpdateResendTimer,0);
@@ -828,7 +846,7 @@ function cmResetSessionUi(){
 }
 function cmAuthShow(session){
  _authUser=session&&session.user?session.user:null;const g=$('#cmAuthGate');if(g)g.hidden=!!_authUser;
- if(_authUser){_cacheKey=LEGACY_CACHE_KEY+':'+_authUser.id;rememberAccount(_authUser.email);cmAuthMsg('')}
+ if(_authUser){_cacheKey=LEGACY_CACHE_KEY+':'+_authUser.id;rememberAccount(_authUser.email);try{if(_authUser.email_confirmed_at){localStorage.removeItem('cm_pending_signup_email');localStorage.removeItem('cm_signup_cooldown_until');_pendingSignupEmail='';_signupCooldownUntil=0}}catch(e){};cmAuthMsg('')}
  else cmAuthSetMode('signin')
 }
 function cmValidEmail(v){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v||'').trim())}
@@ -870,49 +888,52 @@ async function cmAuthSubmit(mode){
   const {data,error}=await sb.auth.signUp({email,password,options:{data:{first_name:first,last_name:last,full_name:fullName},emailRedirectTo:location.origin}});
   if(error)throw error;rememberAccount(email);_pendingSignupEmail=email;try{localStorage.setItem('cm_pending_signup_email',email)}catch(e){};cmSignupCooldown(75);
   if(data.session){await sb.auth.signOut({scope:'local'});cmAuthMsg('Seu e-mail já estava confirmado. Entre novamente para continuar.','ok');cmAuthSetMode('signin');return}
-  const lab=$('#cmVerifyEmail');if(lab)lab.textContent=email;cmClearCode('cmCode');cmAuthSetMode('verify');cmAuthMsg('Digite o código de 6 dígitos recebido no e-mail.','ok')
+  const lab=$('#cmVerifyEmail');if(lab)lab.textContent=email;cmAuthSetMode('verify');cmAuthMsg('E-mail enviado. Abra sua caixa de entrada e clique no botão de confirmação.','ok')
  }catch(e){const msg=String(e&&e.message||'');if(/rate limit|too many requests/i.test(msg)){cmSignupCooldown(120);cmAuthMsg('O envio de e-mail está temporariamente limitado. Seu formulário foi preservado; aguarde o contador antes de tentar novamente.','bad')}else cmAuthMsg(msg||'Não foi possível criar a conta.','bad')}
  finally{_signupBusy=false;cmAuthBusy(false);const sbt=$('#cmAuthSignup');if(sbt)sbt.textContent='Continuar';cmValidateSignup()}
 }
 function cmCancelPendingSignup(){try{localStorage.removeItem('cm_pending_signup_email');localStorage.removeItem('cm_signup_cooldown_until')}catch(e){};_pendingSignupEmail='';_signupCooldownUntil=0;cmClearCode('cmCode');cmAuthSetMode('signup')}
-async function cmVerifySignupCode(){
- const email=_pendingSignupEmail,token=cmReadCode('cmCode');if(!email)return cmAuthSetMode('signup');if(token.length!==6)return cmAuthMsg('Digite os 6 números do código.','bad');
- cmAuthMsg('Confirmando código...');
- try{
-  const {data,error}=await sb.auth.verifyOtp({email,token,type:'email'});if(error)throw error;
-  if(data.session){try{localStorage.removeItem('cm_pending_signup_email');localStorage.removeItem('cm_signup_cooldown_until')}catch(e){};_pendingSignupEmail='';cmAuthShow(data.session);_sbLoaded=false;await loadSupabase();render()}
- }catch(e){cmAuthMsg('Código inválido ou expirado. Confira o e-mail e tente novamente.','bad')}
-}
-async function cmResendSignupCode(){
+async function cmResendSignupEmail(){
  if(!_pendingSignupEmail)return cmAuthSetMode('signup');
- if(Date.now()<_signupCooldownUntil){cmUpdateResendTimer();return cmAuthMsg('Aguarde o contador antes de solicitar outro código.','bad')}
- cmSignupCooldown(75);cmAuthMsg('Reenviando código...');
- try{const {error}=await sb.auth.resend({type:'signup',email:_pendingSignupEmail,options:{emailRedirectTo:location.origin}});if(error)throw error;cmAuthMsg('Código reenviado. Verifique sua caixa de entrada e spam.','ok')}
- catch(e){const msg=String(e&&e.message||'');if(/rate limit|too many requests/i.test(msg)){cmSignupCooldown(120);cmAuthMsg('O limite temporário de e-mail ainda está ativo. Aguarde o contador antes de tentar novamente.','bad')}else cmAuthMsg(msg||'Não foi possível reenviar o código.','bad')}
-}
-async function cmSendRecoveryCode(){
- const email=($('#cmRecoveryEmail')?.value||_recoveryEmail||'').trim().toLowerCase();if(!email)return cmAuthMsg('Informe o e-mail da sua conta.','bad');
- _recoveryEmail=email;cmAuthMsg('Enviando código de recuperação...');
+ if(Date.now()<_signupCooldownUntil){cmUpdateResendTimer();return cmAuthMsg('Aguarde o contador antes de solicitar outro e-mail.','bad')}
+ cmSignupCooldown(75);cmAuthMsg('Reenviando e-mail de confirmação...');
  try{
-  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin});if(error)throw error;
-  const l=$('#cmRecoveryEmailLabel');if(l)l.textContent=email;cmClearCode('cmRecCode');cmAuthSetMode('recovery');cmAuthMsg('Confira o e-mail e digite o código de recuperação.','ok')
- }catch(e){const msg=String(e&&e.message||'');cmAuthMsg(/rate limit/i.test(msg)?'Aguarde alguns minutos antes de pedir outro código.':msg||'Não foi possível enviar a recuperação.','bad')}
+  const {error}=await sb.auth.resend({type:'signup',email:_pendingSignupEmail,options:{emailRedirectTo:location.origin}});
+  if(error)throw error;
+  cmAuthMsg('E-mail reenviado. Abra sua caixa de entrada e clique no botão de confirmação.','ok')
+ }catch(e){
+  const msg=String(e&&e.message||'');
+  if(/rate limit|too many requests/i.test(msg)){cmSignupCooldown(120);cmAuthMsg('O envio está temporariamente limitado. Aguarde o contador e tente novamente.','bad')}
+  else cmAuthMsg(msg||'Não foi possível reenviar o e-mail.','bad')
+ }
+}
+async function cmSendRecoveryEmail(){
+ const email=($('#cmRecoveryEmail')?.value||_recoveryEmail||'').trim().toLowerCase();
+ if(!email)return cmAuthMsg('Informe o e-mail da sua conta.','bad');
+ if(!cmValidEmail(email))return cmAuthMsg('Informe um e-mail válido.','bad');
+ _recoveryEmail=email;const b=$('#cmRecoverySend');if(b)b.disabled=true;cmAuthMsg('Enviando e-mail de recuperação...');
+ try{
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin});
+  if(error)throw error;
+  const l=$('#cmRecoverySentEmail');if(l)l.textContent=email;
+  cmAuthSetMode('recovery-sent');
+  cmAuthMsg('E-mail enviado. Abra sua caixa de entrada e clique no link de redefinição.','ok')
+ }catch(e){
+  const msg=String(e&&e.message||'');
+  cmAuthMsg(/rate limit|too many requests/i.test(msg)?'O envio está temporariamente limitado. Aguarde alguns minutos antes de tentar novamente.':msg||'Não foi possível enviar a recuperação.','bad')
+ }finally{if(b)b.disabled=false}
 }
 async function cmCompleteRecovery(){
- const email=_recoveryEmail||(_authUser&&_authUser.email)||'',token=cmReadCode('cmRecCode'),p=$('#cmNewPassword')?.value||'',c2=$('#cmNewPasswordConfirm')?.value||'';
- if(!_recoveryVerified&&(!email||token.length!==6))return cmAuthMsg('Digite o código completo de 6 dígitos.','bad');
- if(p.length<6)return cmAuthMsg('A nova senha precisa ter pelo menos 6 caracteres.','bad');if(p!==c2)return cmAuthMsg('As duas novas senhas precisam ser iguais.','bad');
- cmAuthMsg(_recoveryVerified?'Atualizando senha...':'Validando código...');
+ const p=$('#cmNewPassword')?.value||'',c2=$('#cmNewPasswordConfirm')?.value||'';
+ if(!_recoveryVerified)return cmAuthMsg('Abra o link de recuperação enviado ao seu e-mail antes de cadastrar a nova senha.','bad');
+ if(p.length<6)return cmAuthMsg('A nova senha precisa ter pelo menos 6 caracteres.','bad');
+ if(p!==c2)return cmAuthMsg('As duas novas senhas precisam ser iguais.','bad');
+ cmAuthMsg('Atualizando senha...');
  try{
-  let session=null;
-  if(!_recoveryVerified){
-   const vr=await sb.auth.verifyOtp({email,token,type:'recovery'});if(vr.error)throw vr.error;session=vr.data.session;if(!session)throw new Error('Sessão de recuperação não criada.')
-  }else{
-   const gs=await sb.auth.getSession();session=gs.data.session;if(!session)throw new Error('Sessão de recuperação não encontrada.')
-  }
-  const up=await sb.auth.updateUser({password:p});if(up.error)throw up.error;
-  _recoveryVerified=false;rememberAccount(email);cmAuthShow(session);_sbLoaded=false;await loadSupabase();render();toast('Senha atualizada. Seus dados e permissões foram mantidos.')
- }catch(e){console.error(e);cmAuthMsg(_recoveryVerified?'Não foi possível atualizar a senha. Tente novamente.':'Código inválido ou expirado. Solicite um novo código e tente novamente.','bad')}
+  const {data:{session},error:sessionError}=await sb.auth.getSession();if(sessionError)throw sessionError;if(!session)throw new Error('Sessão de recuperação não encontrada.');
+  const {error}=await sb.auth.updateUser({password:p});if(error)throw error;
+  _recoveryVerified=false;rememberAccount(session.user.email||_recoveryEmail);cmAuthShow(session);_sbLoaded=false;await loadSupabase();render();toast('Senha atualizada. Seus dados, clubes e permissões foram mantidos.')
+ }catch(e){console.error(e);cmAuthMsg(e&&e.message?e.message:'Não foi possível atualizar a senha. Tente novamente.','bad')}
 }
 async function cmSignOut(){
  if(!sb)return;
@@ -1207,7 +1228,7 @@ if(sb){
   if(event==='PASSWORD_RECOVERY'&&session){
    _authUser=session.user;_recoveryEmail=session.user.email||_recoveryEmail;_recoveryVerified=true;
    const g=$('#cmAuthGate');if(g)g.hidden=false;const ag=$('#cmAccessGate');if(ag)ag.hidden=true;
-   const l=$('#cmRecoveryEmailLabel');if(l)l.textContent=_recoveryEmail;cmClearCode('cmRecCode');cmAuthSetMode('recovery');cmAuthMsg('E-mail validado. Cadastre sua nova senha.','ok');return
+   const l=$('#cmRecoveryEmailLabel');if(l)l.textContent=_recoveryEmail;cmAuthSetMode('recovery');cmAuthMsg('E-mail validado. Cadastre sua nova senha.','ok');return
   }
   _sbLoaded=false;cmAuthShow(session);if(session)await loadSupabase()
  },0)});
