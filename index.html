@@ -890,9 +890,8 @@ function cmEditMember(id){
  if(!isActualAdmin())return note('Somente Presidente ou Vice-presidente podem editar usuários.');
  const m=_clubMembers.find(x=>x.id===id);if(!m)return;
  const roles=Object.keys(S.perms||{});
- modal('Editar usuário',[
+ modal('Editar usuário · '+(m.email||'sem e-mail'),[
    {k:'name',l:'Nome e sobrenome',v:m.display_name||''},
-   {k:'email',l:'E-mail',v:m.email||'',disabled:true},
    {k:'role',l:'Função',t:'sel',o:roles,v:m.role}
  ],v=>{if(!v.name||v.name.trim().length<3)return'Informe o nome e sobrenome.';(async()=>{try{
    const {data,error}=await sb.from('cm_members').update({display_name:v.name.trim(),role:v.role}).eq('id',m.id).eq('club_id',DB.cur).select('id,club_id,user_id,role,status,display_name,email,permissions').single();
@@ -902,7 +901,6 @@ function cmEditMember(id){
    if(m.user_id===(_authUser&&_authUser.id)){_actualRole=data.role;DB.role=data.role}
    render();toast('Usuário atualizado.')
   }catch(e){console.error(e);note(e&&e.message?e.message:'Não consegui atualizar este usuário.')}})()})
- const email=$('#dlg input[name="email"]');if(email)email.disabled=true
 }
 function cmDeleteMember(id){
  if(!isActualAdmin())return note('Somente Presidente ou Vice-presidente podem remover usuários.');
