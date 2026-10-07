@@ -992,7 +992,7 @@ function cmOpenUserPermissions(uid){
 function cmEditMember(id){
  if(!isActualAdmin())return note('Somente Dono, Presidente ou Vice-presidente podem editar usuários.');
  const m=_clubMembers.find(x=>x.id===id);if(!m)return;
- const roles=Object.keys(S.perms||{}).filter(r=>r!=='Dono'||m.role==='Dono');
+ const roles=m.role==='Dono'?['Dono']:Object.keys(S.perms||{}).filter(r=>r!=='Dono');
  modal('Editar usuário · '+(m.email||'sem e-mail'),[
    {k:'name',l:'Nome e sobrenome',v:m.display_name||''},
    {k:'role',l:'Função',t:'sel',o:roles,v:m.role}
@@ -1028,7 +1028,7 @@ function usersPanel(){
  const q=String(_memberFilter||'').trim().toLowerCase();
  const rows=_clubMembers.filter(m=>!q||[m.display_name,m.email,m.role].some(v=>String(v||'').toLowerCase().includes(q)));
  const desktop=rows.map(m=>`<tr><td><b>${esc(m.display_name||'Usuário')}</b><div class="mute" style="font-size:12px">${esc(m.email||'—')}</div></td><td>${esc(m.role==='Dono'?'Dono':m.role)}</td><td><span class="tag ${m.status==='active'?'ok':'neu'}">${m.status==='active'?'Ativo':esc(m.status)}</span></td><td><div class="cm-user-row-actions"><button class="btn ghost sm" onclick="cmEditMember('${m.id}')">Editar</button><button class="btn ghost sm" onclick="cmOpenUserPermissions('${m.user_id}')">Permissões</button>${m.role!=='Dono'&&m.user_id!==(_authUser&&_authUser.id)?`<button class="btn ghost sm" onclick="cmDeleteMember('${m.id}')">Remover do clube</button><button class="btn ghost sm" style="color:var(--neg)" onclick="cmDeleteAccount('${m.id}')">Excluir conta</button>`:''}</div></td></tr>`).join('');
- const mobile=rows.map(m=>`<div class="cm-user-mini"><span class="cm-user-avatar" style="background:var(--soft);color:var(--brand)">${esc((m.display_name||m.email||'US').split(/\s|@/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase())}</span><span class="cm-user-copy"><span class="cm-user-name">${esc(m.display_name||'Usuário')}</span><span class="mute" style="font-size:11px">${esc(m.email||'—')} · ${esc(m.role==='Dono'?'Dono':m.role)}</span></span><button class="btn ghost sm" onclick="cmEditMember('${m.id}')">Editar</button>${m.user_id!==(_authUser&&_authUser.id)?`<button class="btn ghost sm" onclick="cmDeleteMember('${m.id}')">Remover do clube</button><button class="btn ghost sm" style="color:var(--neg)" onclick="cmDeleteAccount('${m.id}')">Excluir conta</button>`:''}</div>`).join('');
+ const mobile=rows.map(m=>`<div class="cm-user-mini"><span class="cm-user-avatar" style="background:var(--soft);color:var(--brand)">${esc((m.display_name||m.email||'US').split(/\s|@/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase())}</span><span class="cm-user-copy"><span class="cm-user-name">${esc(m.display_name||'Usuário')}</span><span class="mute" style="font-size:11px">${esc(m.email||'—')} · ${esc(m.role==='Dono'?'Dono':m.role)}</span></span><button class="btn ghost sm" onclick="cmEditMember('${m.id}')">Editar</button>${m.role!=='Dono'&&m.user_id!==(_authUser&&_authUser.id)?`<button class="btn ghost sm" onclick="cmDeleteMember('${m.id}')">Remover do clube</button><button class="btn ghost sm" style="color:var(--neg)" onclick="cmDeleteAccount('${m.id}')">Excluir conta</button>`:''}</div>`).join('');
  return `<div class="card" style="margin-top:12px"><div class="cm-users-head"><div><h3 style="margin:0">Usuários do clube <span class="tag neu">${_clubMembers.length}</span></h3><p class="mute" style="margin:4px 0 0">Edite nome, função e permissões. “Remover do clube” mantém a conta; “Excluir conta” obriga novo cadastro e nova aprovação.</p></div><div class="cm-users-tools"><input placeholder="Buscar usuário..." value="${esc(_memberFilter)}" oninput="_memberFilter=this.value;render()"></div></div>
  <div class="wrap cm-users-table" style="margin-top:10px"><table class="tbl"><tr><th>Usuário</th><th>Função</th><th>Status</th><th>Ações</th></tr>${desktop||'<tr><td colspan="4" class="empty">Nenhum usuário encontrado.</td></tr>'}</table></div>
  <div class="cm-user-card-list">${mobile||'<div class="empty">Nenhum usuário encontrado.</div>'}</div></div>`
@@ -1222,7 +1222,7 @@ function fixPos(C){C=C||S;if(!C||!Array.isArray(C.players))return;C.lists=C.list
   if(!p.pos)p.pos=t;p.status='Ativo';ch=true});
  if(ch)save()}
 Object.values(DB.clubs).forEach(c=>fixPos(c));
-/* permissões v2: Dono, Dono, Presidente e Vice-presidente têm acesso total.
+/* permissões v2: Dono, Presidente e Vice-presidente têm acesso total.
    Demais funções começam em somente visualização; o administrador pode personalizar por módulo e ação. */
 const PERM_ACTIONS=['view','create','edit','delete'];
 const ADMIN_ROLES=['Dono','Presidente','Vice-presidente'];
