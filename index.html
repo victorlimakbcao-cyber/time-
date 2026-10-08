@@ -1615,10 +1615,12 @@ let view='dashboard',sub='',ctx={};
 function go(v,s='',c={}){view=v;sub=s;ctx=c;render();window.scrollTo(0,0)}
 function switchers(){
  const so='style="background:var(--surface);color:var(--ink);margin-top:4px"';
+ if(!isActualAdmin())return '<div class="cm-fixed-access"><label>Clube</label><div class="cm-fixed-value">'+esc(S.club.name)+'</div><label>Função</label><div class="cm-fixed-value">'+esc(_actualRole)+'</div><small>Definido pelo administrador</small></div>';
  const clubNew=isSystemOwner()?'<option value="__new">＋ Novo clube</option>':'';
  const simRoles=Object.keys(S.perms).filter(r=>isSystemOwner()||r!=='Dono');
- const roleCtl=isActualAdmin()?`<label style="color:inherit;opacity:.8">Ver como (função)</label><select ${so} onchange="setRole(this.value)">${simRoles.map(r=>`<option ${r===DB.role?'selected':''}>${r}</option>`).join('')}</select>`:`<label style="color:inherit;opacity:.8">Função</label><div style="margin-top:4px;font-weight:700">${esc(_actualRole)}</div>`;
- return `<label style="color:inherit;opacity:.8">Clube</label><select ${so} onchange="switchClub(this.value)">${Object.keys(DB.clubs).map(k=>`<option value="${k}" ${k===DB.cur?'selected':''}>${esc(DB.clubs[k].club.name)}${DB.clubs[k].club.demo?' · Demonstração':''}</option>`).join('')}${clubNew}</select>${roleCtl}`}
+ const roleCtl='<label style="color:inherit;opacity:.8">Ver como (função)</label><select '+so+' onchange="setRole(this.value)">'+simRoles.map(r=>'<option '+(r===DB.role?'selected':'')+'>'+r+'</option>').join('')+'</select>';
+ return '<label style="color:inherit;opacity:.8">Clube</label><select '+so+' onchange="switchClub(this.value)">'+Object.keys(DB.clubs).map(k=>'<option value="'+k+'" '+(k===DB.cur?'selected':'')+'>'+esc(DB.clubs[k].club.name)+(DB.clubs[k].club.demo?' · Demonstração':'')+'</option>').join('')+clubNew+'</select>'+roleCtl;
+}
 function setRole(r){if(!isActualAdmin())return;if(r==='Dono'&&!isSystemOwner())return note('A função Dono é exclusiva do usuário principal do sistema.');DB.role=S.perms[r]?r:_actualRole;try{localStorage.setItem(_cacheKey,JSON.stringify(DB))}catch(e){}render()}
 function shell(){
  const items=NAV.filter(([k])=>can(k)).map(([k,l])=>`<a class="${view===k?'on':''}" onclick="go('${k}')">${ic(k)}${l}</a>`).join('');
