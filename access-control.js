@@ -239,7 +239,7 @@ usersPanel=function(){
 };
 
 accessRequestsPanel=function(){
-  if(!isActualAdmin())return'';
+  if(view==='config'||!isActualAdmin())return'';
   var rows=_accessRequests.map(function(r){
     var noClub=r.status==='approved'&&!r.assigned_club_id;
     var label=noClub?'Sem clube':'Aguardando aprovação';
