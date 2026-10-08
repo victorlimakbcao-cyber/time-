@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Clube Manager">
 <meta name="format-detection" content="telephone=no">
-<title>Clube Manager</title>
+<title>Mister Cluber</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#EEF2EF;--surface:#FFFFFF;--ink:#14231C;--mute:#5E7267;--line:#D7E0DA;--brand:#1F6B4A;--brand-ink:#FFFFFF;--accent:#E8B923;--yellow:#F5C518;--pos:#1F8A55;--neg:#C0392B;--soft:#E5EDE8;
@@ -665,6 +665,15 @@ img.sh.shk{opacity:1}
 }
 #cmAuthToSignup:hover{filter:brightness(.96)}
 
+
+/* Mister Cluber visual polish */
+.mc-auth-brand{gap:10px!important;align-items:center!important}
+.mc-brand-mark{width:42px;height:48px;display:grid;place-items:center;background:#f2b900;color:#101910;font:900 15px/1 var(--fh);clip-path:polygon(50% 0,95% 18%,95% 70%,50% 100%,5% 70%,5% 18%)}
+.mc-wordmark{display:grid;grid-template-columns:auto auto;align-items:end;column-gap:4px;font-style:italic;letter-spacing:-.04em;line-height:.9}
+.mc-wordmark b{font:900 23px/1 var(--fh);color:#111}.mc-wordmark strong{font:900 23px/1 var(--fh);color:#f0b400}.mc-wordmark small{grid-column:1/3;font:500 7px/1.2 var(--fb);letter-spacing:.28em;color:#879087;margin-top:5px}
+.cm-fixed-access{display:grid;gap:4px;padding:10px 0}.cm-fixed-access label{font-size:11px;opacity:.7}.cm-fixed-value{font-weight:800;padding:7px 9px;border:1px solid rgba(255,255,255,.18);border-radius:8px;background:rgba(255,255,255,.08)}.cm-fixed-access small{opacity:.62;font-size:10px;margin-top:2px}
+.cm-club-real-logo{width:42px;height:48px;object-fit:contain;flex:none;border-radius:8px;background:var(--surface);padding:2px;border:1px solid var(--line)}
+.ro-mode{display:none!important}
 </style>
 </head>
 <body>
@@ -675,7 +684,7 @@ img.sh.shk{opacity:1}
 
 <div id="cmAuthGate" role="dialog" aria-modal="true" aria-labelledby="cmAuthTitle">
   <div class="cm-auth-card">
-    <div class="cm-auth-brand"><div class="shield">CM</div><b>Clube Manager</b></div>
+    <div class="cm-auth-brand mc-auth-brand"><span class="mc-brand-mark">MC</span><span class="mc-wordmark"><b>MISTER</b><strong>CLUBER</strong><small>SEU TIME · SEU CONTROLE</small></span></div>
     <h1 id="cmAuthTitle">Acesse sua conta</h1>
     <p id="cmAuthSub">Entre com seu e-mail e senha.</p>
 
@@ -1619,7 +1628,7 @@ function shell(){
 }
 function render(){if(!can(view))view='dashboard';shell();const V={dashboard,partidas,competicoes,elenco,campanha,estatisticas,ranking,calendario,financeiro,patrocinadores,contratos,documentos,config,menu}[view];
  const sim=isActualAdmin()&&DB.role!==_actualRole?`<div class="bn"><b>Visualizando como: ${esc(DB.role)}</b><button class="btn sm" onclick="setRole('${_actualRole}')">Voltar para ${esc(_actualRole)}</button></div>`:'';
- const ro=view!=='menu'&&can(view)&&!canDo(view,'create')&&!canDo(view,'edit')&&!canDo(view,'delete')?`<div class="bn ro-mode"><b>Modo somente visualização</b><span>Esta função pode consultar este módulo, mas não pode alterar dados.</span></div>`:'';
+ const ro='';
  $('#main').innerHTML=sim+ro+V();post()}
 const head=(t,extra='')=>`<div class="top"><h1>${t}</h1><div class="row">${extra}</div></div>`;
 const tabs=(list,cur,fn)=>`<div class="tabs">${list.map(([k,l])=>`<button class="${cur===k?'on':''}" onclick="${fn}('${k}')">${l}</button>`).join('')}</div>`;
