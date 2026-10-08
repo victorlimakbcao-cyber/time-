@@ -641,6 +641,30 @@ img.sh.shk{opacity:1}
  .cm-club-block .tbl th:nth-child(4),.cm-club-block .tbl td:nth-child(4){display:none}
 }
 
+
+/* autenticação: rolagem correta no desktop e CTA de cadastro destacado */
+@media(min-width:521px){
+  #cmAuthGate{
+    overflow-y:auto;
+    align-items:start;
+    justify-items:center;
+    padding:24px 20px;
+  }
+  .cm-auth-card{
+    margin:auto 0;
+    max-height:calc(100vh - 48px);
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    scrollbar-gutter:stable;
+  }
+}
+#cmAuthToSignup{
+  background:var(--brand)!important;
+  color:var(--brand-ink)!important;
+  border-color:var(--brand)!important;
+}
+#cmAuthToSignup:hover{filter:brightness(.96)}
+
 </style>
 </head>
 <body>
