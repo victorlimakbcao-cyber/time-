@@ -622,6 +622,25 @@ img.sh.shk{opacity:1}
 .cm-auth-submit[disabled]{opacity:.6;cursor:not-allowed}
 .cm-resend[disabled]{opacity:.55;cursor:not-allowed;text-decoration:none}
 
+
+/* gestão global de clubes e usuários */
+.cm-global-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.cm-global-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}
+.cm-global-kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.cm-global-kpi small{display:block;color:var(--mute);margin-bottom:4px}.cm-global-kpi b{font:700 28px/1 var(--fh)}
+.cm-global-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 0}.cm-global-toolbar input{min-width:240px;max-width:360px}
+.cm-club-block{margin-top:12px;padding:0;overflow:hidden}.cm-club-block-head{display:flex;align-items:center;gap:10px;padding:14px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--soft) 55%,var(--surface))}
+.cm-club-mark{width:38px;height:44px;display:grid;place-items:center;background:var(--accent);color:#172019;font:800 16px var(--fh);clip-path:polygon(0 0,100% 0,100% 62%,50% 100%,0 62%)}
+.cm-club-copy{min-width:0}.cm-club-copy b{font:700 18px var(--fh)}.cm-club-copy small{display:block;color:var(--mute)}
+.cm-club-count{margin-left:auto}.cm-global-actions{display:flex;gap:6px;flex-wrap:wrap}
+.cm-global-empty{padding:18px;text-align:center;color:var(--mute)}
+.cm-global-person{display:flex;align-items:center;gap:10px}.cm-global-person .cm-user-avatar{flex:none}
+.cm-global-status-section{margin-top:12px}
+@media(max-width:760px){
+ .cm-global-kpis{grid-template-columns:1fr 1fr}.cm-global-toolbar input{min-width:100%;max-width:none}
+ .cm-club-block .tbl th:nth-child(4),.cm-club-block .tbl td:nth-child(4){display:none}
+}
+
 </style>
 </head>
 <body>
@@ -803,7 +822,7 @@ const SUPABASE_KEY='sb_publishable_QObRfLJxDi9Kh8-nNLoJYA_pQ3feKBY';
 const sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
 const LEGACY_CACHE_KEY='cm_v2';
 const _legacyRaw=localStorage.getItem(LEGACY_CACHE_KEY),_hadLegacy=!!_legacyRaw;
-let _cacheKey=LEGACY_CACHE_KEY,_authUser=null,_sbTimer=null,_sbBusy=false,_sbLoaded=false,_authMode='signin',_pendingSignupEmail=localStorage.getItem('cm_pending_signup_email')||'',_recoveryEmail='',_recoveryVerified=false,_signupBusy=false,_signupCooldownUntil=+(localStorage.getItem('cm_signup_cooldown_until')||0),_memberFilter='',_members=[],_clubMembers=[],_accessRequests=[],_accessRequest=null,_actualRole='Dono',_permRole='Staff',_permMode='role',_permUser='',_userRoleDraft='',_userPermDraft=null,_userPermDirty=false;
+let _cacheKey=LEGACY_CACHE_KEY,_authUser=null,_sbTimer=null,_sbBusy=false,_sbLoaded=false,_authMode='signin',_pendingSignupEmail=localStorage.getItem('cm_pending_signup_email')||'',_recoveryEmail='',_recoveryVerified=false,_signupBusy=false,_signupCooldownUntil=+(localStorage.getItem('cm_signup_cooldown_until')||0),_memberFilter='',_globalUserFilter='',_members=[],_clubMembers=[],_globalMembers=[],_accessRequests=[],_accessRequest=null,_actualRole='Dono',_permRole='Staff',_permMode='role',_permUser='',_userRoleDraft='',_userPermDraft=null,_userPermDirty=false;
 let DB;try{DB=_legacyRaw?JSON.parse(_legacyRaw):null}catch(e){}
 if(!DB||!DB.clubs)DB={cur:'c1',role:'Dono',clubs:{c1:seed()}};
 let S=DB.clubs[DB.cur];
@@ -845,7 +864,7 @@ function cmAuthSetMode(mode){
 function cmUseOtherEmail(){cmAuthSetMode('signin');const e=$('#cmAuthEmail'),p=$('#cmAuthPassword');if(e){e.value='';e.focus()}if(p)p.value='';cmAuthMsg('Digite o e-mail e a senha da outra conta.')}
 function chooseRememberedAccount(email){cmAuthSetMode('signin');const e=$('#cmAuthEmail'),p=$('#cmAuthPassword');if(e)e.value=email||'';if(p){p.value='';p.focus()}cmAuthMsg('Digite a senha dessa conta para continuar.')}
 function cmResetSessionUi(){
- _authUser=null;_members=[];_clubMembers=[];_accessRequests=[];_accessRequest=null;_actualRole='Dono';_permUser='';_userPermDraft=null;_userPermDirty=false;_sbLoaded=false;
+ _authUser=null;_members=[];_clubMembers=[];_globalMembers=[];_accessRequests=[];_accessRequest=null;_actualRole='Dono';_permUser='';_userPermDraft=null;_userPermDirty=false;_sbLoaded=false;
  const g=$('#cmAuthGate');if(g)g.hidden=false;const ag=$('#cmAccessGate');if(ag)ag.hidden=true;cmAuthSetMode('signin')
 }
 function cmAuthShow(session){
@@ -1007,7 +1026,7 @@ async function cmApproveAccess(id){
      assigned_club_id:v.club,assigned_role:v.role,note:null
    }).eq('id',r.id);
    if(reqErr)throw reqErr;
-   await cmLoadAccessRequests();await cmLoadClubMembers(DB.cur);render();toast('Usuário aprovado e vinculado ao clube como '+v.role+'.')
+   await cmLoadAccessRequests();await cmLoadClubMembers(DB.cur);await cmLoadGlobalMembers();render();toast('Usuário aprovado e vinculado ao clube como '+v.role+'.')
   }catch(e){console.error(e);note('Não consegui aprovar este usuário. Tente novamente.')}})()})
 }
 async function cmRejectAccess(id){
@@ -1043,17 +1062,100 @@ function cmDeleteMember(id){
  if(m.user_id===(_authUser&&_authUser.id))return note('Você não pode excluir seu próprio acesso por esta tela.');
  ask('Remover <b>'+esc(m.display_name||m.email||'este usuário')+'</b> do clube <b>'+esc(S.club.name)+'</b>?<br><span class="mute">A conta não será apagada; apenas o acesso a este clube será removido.</span>',()=>{(async()=>{try{
    const {error}=await sb.from('cm_members').delete().eq('id',m.id).eq('club_id',DB.cur);if(error)throw error;
-   _clubMembers=_clubMembers.filter(x=>x.id!==m.id);if(isSystemOwner())await cmLoadAccessRequests();render();toast('Acesso removido. Se esse era o último clube do usuário, ele agora ficará bloqueado na tela “Você está sem clube”.')
+   _clubMembers=_clubMembers.filter(x=>x.id!==m.id);if(isSystemOwner()){await cmLoadAccessRequests();await cmLoadGlobalMembers()}render();toast('Acesso removido. Se esse era o último clube do usuário, ele agora ficará bloqueado na tela “Você está sem clube”.')
   }catch(e){console.error(e);note(e&&e.message?e.message:'Não consegui remover este usuário.')}})()},'Remover acesso','REMOVER USUÁRIO')
 }
 async function cmDeleteAccount(id){
  if(!isSystemOwner())return note('Somente o Dono do sistema pode excluir contas definitivamente.');
  const m=_clubMembers.find(x=>x.id===id);if(!m)return;
  if(m.user_id===(_authUser&&_authUser.id))return note('Você não pode excluir sua própria conta por esta tela.');
- ask('Excluir definitivamente a conta de <b>'+esc(m.display_name||m.email||'este usuário')+'</b>?<br><span class="neg">A conta de login será apagada. Para voltar ao sistema, essa pessoa precisará criar uma nova conta, confirmar o código por e-mail e passar pela aprovação novamente.</span>',()=>{(async()=>{try{
+ ask('Excluir definitivamente a conta de <b>'+esc(m.display_name||m.email||'este usuário')+'</b>?<br><span class="neg">A conta de login será apagada. Para voltar ao sistema, essa pessoa precisará criar uma nova conta, confirmar o e-mail pelo link recebido e passar pela aprovação novamente.</span>',()=>{(async()=>{try{
    const {data,error}=await sb.functions.invoke('cm-admin-delete-user',{body:{user_id:m.user_id}});if(error)throw error;if(data&&data.error)throw new Error(data.error);
-   _clubMembers=_clubMembers.filter(x=>x.user_id!==m.user_id);await cmLoadAccessRequests();render();toast('Conta excluída do sistema.')
+   _clubMembers=_clubMembers.filter(x=>x.user_id!==m.user_id);await cmLoadAccessRequests();await cmLoadGlobalMembers();render();toast('Conta excluída do sistema.')
   }catch(e){console.error(e);note(e&&e.message?e.message:'Não consegui excluir esta conta.')}})()},'Excluir conta','EXCLUIR CONTA')
+}
+
+function cmClubLabel(id){
+ const st=DB.clubs[id];return st&&st.club?(st.club.name+(st.club.demo?' · Demonstração':'')):'Clube';
+}
+function cmGlobalUserMatches(m,q){
+ if(!q)return true;const club=cmClubLabel(m.club_id);
+ return [m.display_name,m.email,m.role,club].some(v=>String(v||'').toLowerCase().includes(q));
+}
+async function cmGlobalEditMember(id){
+ if(!isSystemOwner())return note('Somente o Dono pode administrar usuários de todos os clubes.');
+ const m=_globalMembers.find(x=>x.id===id);if(!m)return;
+ const currentState=DB.clubs[m.club_id];if(!currentState)return note('Clube não encontrado.');
+ const isOwner=m.role==='Dono'||m.user_id===(_authUser&&_authUser.id);
+ const clubs=isOwner?[[m.club_id,cmClubLabel(m.club_id)]]:Object.entries(DB.clubs).map(([cid,st])=>[cid,st.club.name+(st.club.demo?' · Demonstração':'')]);
+ const roles=isOwner?['Dono']:Object.keys((currentState&&currentState.perms)||S.perms||{}).filter(r=>r!=='Dono');
+ modal('Editar usuário · '+(m.email||'sem e-mail'),[
+  {k:'name',l:'Nome e sobrenome',v:m.display_name||''},
+  {k:'club',l:'Clube',t:'sel',o:clubs,v:m.club_id},
+  {k:'role',l:'Função',t:'sel',o:roles,v:m.role}
+ ],v=>{
+  if(!v.name||v.name.trim().length<3)return'Informe o nome e sobrenome.';
+  if(isOwner&&(v.club!==m.club_id||v.role!=='Dono'))return'A conta Dono é protegida.';
+  (async()=>{try{
+   if(v.club!==m.club_id&&_globalMembers.some(x=>x.id!==m.id&&x.club_id===v.club&&x.user_id===m.user_id))
+    throw new Error('Este usuário já está vinculado ao clube escolhido.');
+   const targetState=DB.clubs[v.club]||currentState;
+   const validRoles=Object.keys(targetState.perms||{}).filter(r=>r!=='Dono');
+   const role=isOwner?'Dono':(validRoles.includes(v.role)?v.role:'Jogador');
+   const {data,error}=await sb.from('cm_members').update({
+    display_name:v.name.trim(),club_id:v.club,role
+   }).eq('id',m.id).select('id,club_id,user_id,role,status,display_name,email,permissions,created_at,updated_at').single();
+   if(error)throw error;
+   await sb.from('cm_access_requests').update({
+    status:'approved',assigned_club_id:data.club_id,assigned_role:data.role,reviewed_at:new Date().toISOString(),reviewed_by:_authUser.id,note:null
+   }).eq('user_id',data.user_id).neq('status','rejected');
+   await cmLoadGlobalMembers();await cmLoadAccessRequests();if(DB.cur===m.club_id||DB.cur===data.club_id)await cmLoadClubMembers(DB.cur);
+   render();toast(v.club!==m.club_id?'Usuário movido e atualizado.':'Usuário atualizado.')
+  }catch(e){console.error(e);note(e&&e.message?e.message:'Não consegui atualizar este usuário.')}})()
+ })
+}
+async function cmGlobalPermissions(id){
+ if(!isSystemOwner())return;
+ const m=_globalMembers.find(x=>x.id===id);if(!m||!DB.clubs[m.club_id])return note('Usuário ou clube não encontrado.');
+ DB.cur=m.club_id;S=DB.clubs[m.club_id];normalizePerms(S);const me=_members.find(x=>x.club_id===m.club_id);_actualRole=me&&me.role?me.role:'Dono';DB.role=_actualRole;
+ _permMode='user';_permUser='';_userPermDraft=null;_userPermDirty=false;
+ await cmLoadClubMembers(m.club_id);selectPermUser(m.user_id);sub='';render();
+ setTimeout(()=>{const e=document.getElementById('cm-permissions');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})},60)
+}
+function cmGlobalRemoveMember(id){
+ if(!isSystemOwner())return;
+ const m=_globalMembers.find(x=>x.id===id);if(!m)return;
+ if(m.role==='Dono'||m.user_id===(_authUser&&_authUser.id))return note('O acesso do Dono é protegido.');
+ ask('Remover <b>'+esc(m.display_name||m.email||'este usuário')+'</b> do clube <b>'+esc(cmClubLabel(m.club_id))+'</b>?<br><span class="mute">A conta continuará existindo. Se este for o último clube, o usuário ficará “Sem clube”.</span>',()=>{(async()=>{try{
+   const {error}=await sb.from('cm_members').delete().eq('id',m.id);if(error)throw error;
+   await cmLoadGlobalMembers();await cmLoadAccessRequests();if(DB.cur===m.club_id)await cmLoadClubMembers(DB.cur);render();toast('Usuário removido do clube.')
+  }catch(e){console.error(e);note(e&&e.message?e.message:'Não consegui remover o usuário.')}})()},'Remover do clube','REMOVER')
+}
+function cmGlobalClubSection(clubId,st,q){
+ const rows=_globalMembers.filter(m=>m.club_id===clubId&&cmGlobalUserMatches(m,q));
+ const allCount=_globalMembers.filter(m=>m.club_id===clubId).length;
+ if(q&&!rows.length)return'';
+ const body=rows.map(m=>`<tr><td><div class="cm-global-person"><span class="cm-user-avatar">${esc((m.display_name||m.email||'US').split(/\s|@/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase())}</span><span><b>${esc(m.display_name||'Usuário')}</b><div class="mute" style="font-size:12px">${esc(m.email||'—')}</div></span></div></td><td>${esc(m.role)}</td><td><span class="tag ${m.status==='active'?'ok':'neu'}">${m.status==='active'?'Ativo':esc(m.status)}</span></td><td>${m.created_at?new Date(m.created_at).toLocaleDateString('pt-BR'):'—'}</td><td><div class="cm-global-actions"><button class="btn ghost sm" onclick="cmGlobalEditMember('${m.id}')">Editar</button><button class="btn ghost sm" onclick="cmGlobalPermissions('${m.id}')">Permissões</button>${m.role!=='Dono'&&m.user_id!==(_authUser&&_authUser.id)?`<button class="btn ghost sm" onclick="cmGlobalRemoveMember('${m.id}')">Remover do clube</button>`:''}</div></td></tr>`).join('');
+ return `<div class="card cm-club-block"><div class="cm-club-block-head"><span class="cm-club-mark">${esc((st.club.sigla||st.club.name||'CL').slice(0,3).toUpperCase())}</span><span class="cm-club-copy"><b>${esc(st.club.name)}${st.club.demo?' · DEMONSTRAÇÃO':''}</b><small>${st.club.demo?'Clube de demonstração do sistema.':'Usuários vinculados a este clube.'}</small></span><span class="tag neu cm-club-count">${allCount} ${allCount===1?'usuário':'usuários'}</span></div><div class="wrap"><table class="tbl"><tr><th>Usuário</th><th>Função</th><th>Status</th><th>Membro desde</th><th>Ações</th></tr>${body||'<tr><td colspan="5" class="cm-global-empty">Nenhum usuário neste clube.</td></tr>'}</table></div></div>`
+}
+function clubsUsersPage(){
+ if(!isSystemOwner())return head('Clubes e usuários')+'<div class="card"><div class="empty">Esta visão é exclusiva do Dono do sistema.</div></div>';
+ const q=String(_globalUserFilter||'').trim().toLowerCase();
+ const uniqueActive=new Set(_globalMembers.map(m=>m.user_id)).size;
+ const pending=_accessRequests.filter(r=>r.status==='pending').length;
+ const noClub=_accessRequests.filter(r=>r.status==='approved'&&!r.assigned_club_id).length;
+ const clubs=Object.entries(DB.clubs);
+ const clubHtml=clubs.map(([id,st])=>cmGlobalClubSection(id,st,q)).join('');
+ const unassigned=_accessRequests.filter(r=>r.status==='approved'&&!r.assigned_club_id&&( !q || [r.full_name,r.email,'sem clube'].some(v=>String(v||'').toLowerCase().includes(q))));
+ const pendingRows=_accessRequests.filter(r=>r.status==='pending'&&( !q || [r.full_name,r.email,'aguardando aprovação'].some(v=>String(v||'').toLowerCase().includes(q))));
+ const accessBlock=(title,desc,rows,type)=>`<div class="card cm-global-status-section"><div class="row"><div><h3>${title}</h3><p class="mute" style="margin:3px 0 0">${desc}</p></div><span class="sp"></span><span class="tag ${type==='pending'?'warn':'neu'}">${rows.length}</span></div>${rows.length?`<div class="wrap" style="margin-top:10px"><table class="tbl"><tr><th>Usuário</th><th>Status</th><th>Solicitado em</th><th>Ações</th></tr>${rows.map(r=>`<tr><td><b>${esc(r.full_name||'Sem nome')}</b><div class="mute" style="font-size:12px">${esc(r.email||'—')}</div></td><td><span class="tag ${type==='pending'?'warn':'neu'}">${type==='pending'?'Aguardando aprovação':'Sem clube'}</span></td><td>${r.requested_at?new Date(r.requested_at).toLocaleString('pt-BR'):'—'}</td><td><div class="cm-global-actions"><button class="btn sm" onclick="cmApproveAccess('${r.id}')">${type==='pending'?'Aprovar':'Vincular a clube'}</button>${type==='pending'? `<button class="btn ghost sm" onclick="cmRejectAccess('${r.id}')">Recusar</button>`:''}</div></td></tr>`).join('')}</table></div>`:'<div class="empty">Nenhum usuário nesta situação.</div>'}</div>`;
+ return head('Clubes e usuários',`<button class="btn ghost sm" onclick="go('config')">← Configurações</button><button class="btn sm" onclick="newClubDialog()">＋ Criar clube</button>`)
+ +`<div class="cm-global-head"><div><h2>Visão geral do sistema</h2><p class="mute" style="margin:4px 0 0">Veja quem está em cada clube e administre os acessos em um único lugar.</p></div></div>
+ <div class="cm-global-kpis"><div class="cm-global-kpi"><small>Total de clubes</small><b>${clubs.length}</b></div><div class="cm-global-kpi"><small>Usuários ativos</small><b>${uniqueActive}</b></div><div class="cm-global-kpi"><small>Aguardando aprovação</small><b>${pending}</b></div><div class="cm-global-kpi"><small>Sem clube</small><b>${noClub}</b></div></div>
+ <div class="cm-global-toolbar"><input placeholder="Buscar clube, usuário, e-mail ou função..." value="${esc(_globalUserFilter)}" oninput="_globalUserFilter=this.value;render()"><span class="mute">O mesmo usuário pode aparecer em mais de um clube quando possuir mais de um vínculo.</span></div>
+ ${clubHtml||'<div class="card"><div class="empty">Nenhum clube encontrado.</div></div>'}
+ ${accessBlock('Usuários sem clube','Possuem conta, mas não estão vinculados a nenhum clube.',unassigned,'unassigned')}
+ ${accessBlock('Aguardando aprovação','Confirmaram o e-mail e aguardam sua liberação.',pendingRows,'pending')}`
 }
 function usersPanel(){
  if(!isActualAdmin())return'';
@@ -1181,6 +1283,18 @@ async function cmLoadClubMembers(clubId=DB.cur){
   return _clubMembers
  }catch(e){console.warn('Falha ao carregar usuários do clube:',e);_clubMembers=[];return[]}
 }
+async function cmLoadGlobalMembers(){
+ if(!sb||!_authUser||!isSystemOwner()){_globalMembers=[];return[]}
+ try{
+  const {data,error}=await sb.from('cm_members')
+   .select('id,club_id,user_id,role,status,display_name,email,permissions,created_at,updated_at')
+   .eq('status','active')
+   .order('created_at',{ascending:true});
+  if(error)throw error;
+  _globalMembers=data||[];
+  return _globalMembers
+ }catch(e){console.warn('Falha ao carregar usuários globais:',e);_globalMembers=[];return[]}
+}
 const currentMember=()=>_members.find(m=>m.club_id===DB.cur&&m.user_id===(_authUser&&_authUser.id));
 const userOverride=(k,a)=>{
  const m=currentMember();if(!m||DB.role!==_actualRole)return undefined;
@@ -1215,6 +1329,7 @@ async function loadSupabase(){
   if(!remote){cmShowAccessGate(_accessRequest);return}
   cmHideAccessGate();setDB(remote);Object.values(DB.clubs).forEach(cl=>normalizePerms(cl));if(isSystemOwner())await cmEnsureDemoClub();if(!DB.cur||!DB.clubs[DB.cur])DB.cur=Object.keys(DB.clubs)[0];S=DB.clubs[DB.cur];await cmLoadClubMembers(DB.cur);
   await cmLoadAccessRequests();
+  await cmLoadGlobalMembers();
   try{localStorage.setItem(_cacheKey,JSON.stringify(DB));if(_hadLegacy)localStorage.setItem('cm_v2:migrated_to',_authUser.id)}catch(e){}
   render();
  }catch(e){console.warn('Supabase load falhou:',e);cmAuthMsg('Falha ao carregar o backend do clube. Atualize a página e tente novamente.','bad');_sbLoaded=false}
@@ -2127,8 +2242,9 @@ function addTx(mid){const cats=S.lists.txcats;
 
 /* config */
 function config(){
+ if(sub==='usuarios')return clubsUsersPage();
  const A=NAV.map(n=>n[0]);
- return head('Configurações')+`<div class="grid g2"><div class="card"><h3>Identidade do clube</h3><label>Nome</label><input value="${esc(S.club.name)}" onchange="S.club.name=this.value;save();shell()"><label>Escudo do clube (imagem)</label><div class="row" style="gap:12px">${logo(56,64)}<div><input type="file" accept="image/*" onchange="setLogo(this)" style="padding:6px">${S.club.logo?`<button class="btn ghost sm" style="margin-top:6px" onclick="delLogo()">Remover imagem</button>`:''}</div></div><label>Sigla do escudo (usada quando não há imagem)</label><input maxlength="3" value="${esc(S.club.sigla)}" onchange="S.club.sigla=this.value;save();shell()"><label>Cor principal</label><input type="color" value="${S.club.color}" oninput="S.club.color=this.value;save();shell()"><label>Cor de destaque</label><input type="color" value="${S.club.accent}" oninput="S.club.accent=this.value;save();shell()"><label>Tema</label><div class="row"><button class="btn ghost sm" onclick="setTheme('light')">Claro</button><button class="btn ghost sm" onclick="setTheme('dark')">Escuro</button></div></div>
+ return head('Configurações',isSystemOwner()?`<button class="btn sm" onclick="go('config','usuarios')">Clubes e usuários</button>`:'')+`<div class="grid g2"><div class="card"><h3>Identidade do clube</h3><label>Nome</label><input value="${esc(S.club.name)}" onchange="S.club.name=this.value;save();shell()"><label>Escudo do clube (imagem)</label><div class="row" style="gap:12px">${logo(56,64)}<div><input type="file" accept="image/*" onchange="setLogo(this)" style="padding:6px">${S.club.logo?`<button class="btn ghost sm" style="margin-top:6px" onclick="delLogo()">Remover imagem</button>`:''}</div></div><label>Sigla do escudo (usada quando não há imagem)</label><input maxlength="3" value="${esc(S.club.sigla)}" onchange="S.club.sigla=this.value;save();shell()"><label>Cor principal</label><input type="color" value="${S.club.color}" oninput="S.club.color=this.value;save();shell()"><label>Cor de destaque</label><input type="color" value="${S.club.accent}" oninput="S.club.accent=this.value;save();shell()"><label>Tema</label><div class="row"><button class="btn ghost sm" onclick="setTheme('light')">Claro</button><button class="btn ghost sm" onclick="setTheme('dark')">Escuro</button></div></div>
  <div class="card"><h3>Notas</h3><p class="mute">Nota final do jogador = média ponderada das avaliações. Soma atual: ${S.weights.coach+S.weights.staff+S.weights.players}%.</p><label>Peso da nota do técnico (%)</label><input type="number" style="width:100%" value="${S.weights.coach}" onchange="S.weights.coach=+this.value;save();render()"><label>Peso da comissão técnica (%)</label><input type="number" style="width:100%" value="${S.weights.staff}" onchange="S.weights.staff=+this.value;save();render()"><label>Peso dos jogadores (%)</label><input type="number" style="width:100%" value="${S.weights.players}" onchange="S.weights.players=+this.value;save();render()"></div></div>
  <div class="grid g3" style="margin-top:12px"><div class="card"><h3>Regras</h3><p class="mute">Pontos por vitória, empate e derrota e critérios de desempate ficam em cada competição (Competições → Regras e times). O aproveitamento do Dashboard usa 3 · 1 · 0.</p></div>
  <div class="card"><h3>Mensalidade</h3><label>Valor (R$)</label><input type="number" style="width:100%" value="${S.feeValue}" onchange="S.feeValue=+this.value;save()"><label>Dia do vencimento</label><input type="number" min="1" max="28" style="width:100%" value="${S.feeDay||10}" onchange="S.feeDay=Math.min(28,Math.max(1,+this.value||10));save()"><label>Participantes</label><button class="btn ghost sm" onclick="feeParts()">Escolher (${feePl().length} de ${sched().length})</button></div>
