@@ -9,9 +9,9 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Clube Manager">
+<meta name="apple-mobile-web-app-title" content="Mister Cluber">
 <meta name="format-detection" content="telephone=no">
-<title>Clube Manager</title>
+<title>Mister Cluber</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#EEF2EF;--surface:#FFFFFF;--ink:#14231C;--mute:#5E7267;--line:#D7E0DA;--brand:#1F6B4A;--brand-ink:#FFFFFF;--accent:#E8B923;--yellow:#F5C518;--pos:#1F8A55;--neg:#C0392B;--soft:#E5EDE8;
@@ -665,6 +665,15 @@ img.sh.shk{opacity:1}
 }
 #cmAuthToSignup:hover{filter:brightness(.96)}
 
+
+/* Mister Cluber visual polish */
+.mc-auth-brand{gap:10px!important;align-items:center!important}
+.mc-brand-mark{width:42px;height:48px;display:grid;place-items:center;background:#f2b900;color:#101910;font:900 15px/1 var(--fh);clip-path:polygon(50% 0,95% 18%,95% 70%,50% 100%,5% 70%,5% 18%)}
+.mc-wordmark{display:grid;grid-template-columns:auto auto;align-items:end;column-gap:4px;font-style:italic;letter-spacing:-.04em;line-height:.9}
+.mc-wordmark b{font:900 23px/1 var(--fh);color:#111}.mc-wordmark strong{font:900 23px/1 var(--fh);color:#f0b400}.mc-wordmark small{grid-column:1/3;font:500 7px/1.2 var(--fb);letter-spacing:.28em;color:#879087;margin-top:5px}
+.cm-fixed-access{display:grid;gap:4px;padding:10px 0}.cm-fixed-access label{font-size:11px;opacity:.7}.cm-fixed-value{font-weight:800;padding:7px 9px;border:1px solid rgba(255,255,255,.18);border-radius:8px;background:rgba(255,255,255,.08)}.cm-fixed-access small{opacity:.62;font-size:10px;margin-top:2px}
+.cm-club-real-logo{width:42px;height:48px;object-fit:contain;flex:none;border-radius:8px;background:var(--surface);padding:2px;border:1px solid var(--line)}
+.ro-mode{display:none!important}
 </style>
 </head>
 <body>
@@ -675,7 +684,7 @@ img.sh.shk{opacity:1}
 
 <div id="cmAuthGate" role="dialog" aria-modal="true" aria-labelledby="cmAuthTitle">
   <div class="cm-auth-card">
-    <div class="cm-auth-brand"><div class="shield">CM</div><b>Clube Manager</b></div>
+    <div class="cm-auth-brand mc-auth-brand"><span class="mc-brand-mark">MC</span><span class="mc-wordmark"><b>MISTER</b><strong>CLUBER</strong><small>SEU TIME · SEU CONTROLE</small></span></div>
     <h1 id="cmAuthTitle">Acesse sua conta</h1>
     <p id="cmAuthSub">Entre com seu e-mail e senha.</p>
 
@@ -737,7 +746,7 @@ img.sh.shk{opacity:1}
       <div class="cm-access-card" style="box-shadow:none;border:1px solid var(--line);margin:12px 0;padding:16px">
         <div class="cm-access-ico">✉</div>
         <h3 style="margin:0 0 6px">Abra o Gmail</h3>
-        <p class="cm-auth-help" style="margin:0">Clique em “Redefinir senha” no e-mail. Você voltará automaticamente para o Clube Manager para cadastrar a nova senha.</p>
+        <p class="cm-auth-help" style="margin:0">Clique em “Redefinir senha” no e-mail. Você voltará automaticamente para o Mister Cluber para cadastrar a nova senha.</p>
       </div>
       <button class="cm-auth-link cm-auth-switch" type="button" onclick="cmSendRecoveryEmail()">Reenviar e-mail</button>
       <button class="cm-auth-link cm-auth-switch" type="button" onclick="cmAuthSetMode('signin')">Voltar para o login</button>
@@ -875,7 +884,7 @@ function cmAuthSetMode(mode){
  const title=$('#cmAuthTitle'),sub=$('#cmAuthSub');
  const labels={
   signin:['Acesse sua conta','Entre com seu e-mail e senha.'],
-  signup:['Criar conta','Preencha seus dados para solicitar acesso ao Clube Manager.'],
+  signup:['Criar conta','Preencha seus dados para solicitar acesso ao Mister Cluber.'],
   verify:['Confirme seu Gmail','Valide seu e-mail pelo link recebido antes de entrar na fila de aprovação.'],
   forgot:['Esqueci minha senha','Recupere sua senha sem perder seus clubes, funções ou histórico.'],
   'recovery-sent':['Confira seu e-mail','Abra o link seguro enviado para continuar a recuperação.'],
@@ -1160,7 +1169,7 @@ function cmGlobalClubSection(clubId,st,q){
  const allCount=_globalMembers.filter(m=>m.club_id===clubId).length;
  if(q&&!rows.length)return'';
  const body=rows.map(m=>`<tr><td><div class="cm-global-person"><span class="cm-user-avatar">${esc((m.display_name||m.email||'US').split(/\s|@/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase())}</span><span><b>${esc(m.display_name||'Usuário')}</b><div class="mute" style="font-size:12px">${esc(m.email||'—')}</div></span></div></td><td>${esc(m.role)}</td><td><span class="tag ${m.status==='active'?'ok':'neu'}">${m.status==='active'?'Ativo':esc(m.status)}</span></td><td>${m.created_at?new Date(m.created_at).toLocaleDateString('pt-BR'):'—'}</td><td><div class="cm-global-actions"><button class="btn ghost sm" onclick="cmGlobalEditMember('${m.id}')">Editar</button><button class="btn ghost sm" onclick="cmGlobalPermissions('${m.id}')">Permissões</button>${m.role!=='Dono'&&m.user_id!==(_authUser&&_authUser.id)?`<button class="btn ghost sm" onclick="cmGlobalRemoveMember('${m.id}')">Remover do clube</button>`:''}</div></td></tr>`).join('');
- return `<div class="card cm-club-block"><div class="cm-club-block-head"><span class="cm-club-mark">${esc((st.club.sigla||st.club.name||'CL').slice(0,3).toUpperCase())}</span><span class="cm-club-copy"><b>${esc(st.club.name)}${st.club.demo?' · DEMONSTRAÇÃO':''}</b><small>${st.club.demo?'Clube de demonstração do sistema.':'Usuários vinculados a este clube.'}</small></span><span class="tag neu cm-club-count">${allCount} ${allCount===1?'usuário':'usuários'}</span></div><div class="wrap"><table class="tbl"><tr><th>Usuário</th><th>Função</th><th>Status</th><th>Membro desde</th><th>Ações</th></tr>${body||'<tr><td colspan="5" class="cm-global-empty">Nenhum usuário neste clube.</td></tr>'}</table></div></div>`
+ return `<div class="card cm-club-block"><div class="cm-club-block-head">${st.club.logo?`<img class="cm-club-real-logo" src="${esc(st.club.logo)}" alt="Escudo ${esc(st.club.name)}">`:`<span class="cm-club-mark">${esc((st.club.sigla||st.club.name||'CL').slice(0,3).toUpperCase())}</span>`}<span class="cm-club-copy"><b>${esc(st.club.name)}${st.club.demo?' · DEMONSTRAÇÃO':''}</b><small>${st.club.demo?'Clube de demonstração do sistema.':'Usuários vinculados a este clube.'}</small></span><span class="tag neu cm-club-count">${allCount} ${allCount===1?'usuário':'usuários'}</span></div><div class="wrap"><table class="tbl"><tr><th>Usuário</th><th>Função</th><th>Status</th><th>Membro desde</th><th>Ações</th></tr>${body||'<tr><td colspan="5" class="cm-global-empty">Nenhum usuário neste clube.</td></tr>'}</table></div></div>`
 }
 function clubsUsersPage(){
  if(!isSystemOwner())return head('Clubes e usuários')+'<div class="card"><div class="empty">Esta visão é exclusiva do Dono do sistema.</div></div>';
@@ -1606,10 +1615,12 @@ let view='dashboard',sub='',ctx={};
 function go(v,s='',c={}){view=v;sub=s;ctx=c;render();window.scrollTo(0,0)}
 function switchers(){
  const so='style="background:var(--surface);color:var(--ink);margin-top:4px"';
+ if(!isActualAdmin())return '<div class="cm-fixed-access"><label>Clube</label><div class="cm-fixed-value">'+esc(S.club.name)+'</div><label>Função</label><div class="cm-fixed-value">'+esc(_actualRole)+'</div><small>Definido pelo administrador</small></div>';
  const clubNew=isSystemOwner()?'<option value="__new">＋ Novo clube</option>':'';
  const simRoles=Object.keys(S.perms).filter(r=>isSystemOwner()||r!=='Dono');
- const roleCtl=isActualAdmin()?`<label style="color:inherit;opacity:.8">Ver como (função)</label><select ${so} onchange="setRole(this.value)">${simRoles.map(r=>`<option ${r===DB.role?'selected':''}>${r}</option>`).join('')}</select>`:`<label style="color:inherit;opacity:.8">Função</label><div style="margin-top:4px;font-weight:700">${esc(_actualRole)}</div>`;
- return `<label style="color:inherit;opacity:.8">Clube</label><select ${so} onchange="switchClub(this.value)">${Object.keys(DB.clubs).map(k=>`<option value="${k}" ${k===DB.cur?'selected':''}>${esc(DB.clubs[k].club.name)}${DB.clubs[k].club.demo?' · Demonstração':''}</option>`).join('')}${clubNew}</select>${roleCtl}`}
+ const roleCtl='<label style="color:inherit;opacity:.8">Ver como (função)</label><select '+so+' onchange="setRole(this.value)">'+simRoles.map(r=>'<option '+(r===DB.role?'selected':'')+'>'+r+'</option>').join('')+'</select>';
+ return '<label style="color:inherit;opacity:.8">Clube</label><select '+so+' onchange="switchClub(this.value)">'+Object.keys(DB.clubs).map(k=>'<option value="'+k+'" '+(k===DB.cur?'selected':'')+'>'+esc(DB.clubs[k].club.name)+(DB.clubs[k].club.demo?' · Demonstração':'')+'</option>').join('')+clubNew+'</select>'+roleCtl;
+}
 function setRole(r){if(!isActualAdmin())return;if(r==='Dono'&&!isSystemOwner())return note('A função Dono é exclusiva do usuário principal do sistema.');DB.role=S.perms[r]?r:_actualRole;try{localStorage.setItem(_cacheKey,JSON.stringify(DB))}catch(e){}render()}
 function shell(){
  const items=NAV.filter(([k])=>can(k)).map(([k,l])=>`<a class="${view===k?'on':''}" onclick="go('${k}')">${ic(k)}${l}</a>`).join('');
@@ -1619,7 +1630,7 @@ function shell(){
 }
 function render(){if(!can(view))view='dashboard';shell();const V={dashboard,partidas,competicoes,elenco,campanha,estatisticas,ranking,calendario,financeiro,patrocinadores,contratos,documentos,config,menu}[view];
  const sim=isActualAdmin()&&DB.role!==_actualRole?`<div class="bn"><b>Visualizando como: ${esc(DB.role)}</b><button class="btn sm" onclick="setRole('${_actualRole}')">Voltar para ${esc(_actualRole)}</button></div>`:'';
- const ro=view!=='menu'&&can(view)&&!canDo(view,'create')&&!canDo(view,'edit')&&!canDo(view,'delete')?`<div class="bn ro-mode"><b>Modo somente visualização</b><span>Esta função pode consultar este módulo, mas não pode alterar dados.</span></div>`:'';
+ const ro='';
  $('#main').innerHTML=sim+ro+V();post()}
 const head=(t,extra='')=>`<div class="top"><h1>${t}</h1><div class="row">${extra}</div></div>`;
 const tabs=(list,cur,fn)=>`<div class="tabs">${list.map(([k,l])=>`<button class="${cur===k?'on':''}" onclick="${fn}('${k}')">${l}</button>`).join('')}</div>`;
@@ -2490,4 +2501,4 @@ render();
 </script>
 
 
-<script src="/access-control.js?v=20261008-1"></script>\n</body></html>
+<script src="/access-control.js?v=20261008-1"></script>\n<script src="/visual-polish.js?v=20261008-2"></script>\n</body></html>
