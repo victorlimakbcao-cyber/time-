@@ -9,7 +9,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Clube Manager">
+<meta name="apple-mobile-web-app-title" content="Mister Cluber">
 <meta name="format-detection" content="telephone=no">
 <title>Mister Cluber</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -746,7 +746,7 @@ img.sh.shk{opacity:1}
       <div class="cm-access-card" style="box-shadow:none;border:1px solid var(--line);margin:12px 0;padding:16px">
         <div class="cm-access-ico">✉</div>
         <h3 style="margin:0 0 6px">Abra o Gmail</h3>
-        <p class="cm-auth-help" style="margin:0">Clique em “Redefinir senha” no e-mail. Você voltará automaticamente para o Clube Manager para cadastrar a nova senha.</p>
+        <p class="cm-auth-help" style="margin:0">Clique em “Redefinir senha” no e-mail. Você voltará automaticamente para o Mister Cluber para cadastrar a nova senha.</p>
       </div>
       <button class="cm-auth-link cm-auth-switch" type="button" onclick="cmSendRecoveryEmail()">Reenviar e-mail</button>
       <button class="cm-auth-link cm-auth-switch" type="button" onclick="cmAuthSetMode('signin')">Voltar para o login</button>
@@ -884,7 +884,7 @@ function cmAuthSetMode(mode){
  const title=$('#cmAuthTitle'),sub=$('#cmAuthSub');
  const labels={
   signin:['Acesse sua conta','Entre com seu e-mail e senha.'],
-  signup:['Criar conta','Preencha seus dados para solicitar acesso ao Clube Manager.'],
+  signup:['Criar conta','Preencha seus dados para solicitar acesso ao Mister Cluber.'],
   verify:['Confirme seu Gmail','Valide seu e-mail pelo link recebido antes de entrar na fila de aprovação.'],
   forgot:['Esqueci minha senha','Recupere sua senha sem perder seus clubes, funções ou histórico.'],
   'recovery-sent':['Confira seu e-mail','Abra o link seguro enviado para continuar a recuperação.'],
@@ -2501,4 +2501,4 @@ render();
 </script>
 
 
-<script src="/access-control.js?v=20261008-1"></script>\n</body></html>
+<script src="/access-control.js?v=20261008-1"></script>\n<script src="/visual-polish.js?v=20261008-2"></script>\n</body></html>
