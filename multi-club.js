@@ -67,7 +67,7 @@ async function drawSecondClubApprovals(){
   if(!rows.length){slot.innerHTML='<h3>Solicitações de outros clubes</h3><p class="mute">Nenhuma solicitação pendente.</p>';return}
   slot.innerHTML='<h3>Solicitações de outros clubes ('+rows.length+')</h3>'+rows.map(function(v){
    var club=DB.clubs[v.club_id];
-   return '<div class="row" style="justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)"><div><b>Usuário '+safe(v.user_id.slice(0,8))+'</b><br><small class="mute">Clube: '+safe(club?club.club.name:'Clube solicitado')+' · Jogador</small></div><div class="row"><button class="btn sm" onclick="cmReviewSecondClub(\''+safe(v.id)+'\',true)">Aprovar</button><button class="btn ghost sm" onclick="cmReviewSecondClub(\''+safe(v.id)+'\',false)">Recusar</button></div></div>'
+   return '<div class="row" style="justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)"><div><b>'+safe(v.full_name||v.email||'Jogador')+'</b><br><small class="mute">Clube: '+safe(club?club.club.name:'Clube solicitado')+' · Jogador</small></div><div class="row"><button class="btn sm" onclick="cmReviewSecondClub(\''+safe(v.id)+'\',true)">Aprovar</button><button class="btn ghost sm" onclick="cmReviewSecondClub(\''+safe(v.id)+'\',false)">Recusar</button></div></div>'
   }).join('');
  }catch(e){if(slot.isConnected)slot.innerHTML='<h3>Solicitações de outros clubes</h3><p class="neg">'+safe(e.message||'Falha ao carregar')+'</p>'}
 }
