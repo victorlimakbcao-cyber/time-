@@ -89,7 +89,9 @@ render=function(){
   if(main&&!document.getElementById('cmSecondApprovals')){
    var slot=document.createElement('div');
    slot.id='cmSecondApprovals';slot.className='card';slot.style.marginTop='16px';slot.textContent='Carregando solicitações de outros clubes...';
-   main.appendChild(slot);
+   var accessRequestsCard=main.querySelector('.cm-pending');
+   if(accessRequestsCard){accessRequestsCard.insertAdjacentElement('afterend',slot)}
+   else{main.appendChild(slot)}
   }
   drawSecondClubApprovals();
  }
