@@ -3,7 +3,7 @@
 'use strict';
 var requests=[];
 var publicClubs=[];
-var isReady=function(){return !!(window.sb&&window._authUser&&window.DB&&DB.cur)};
+var isReady=function(){return !!(typeof sb!=='undefined'&&sb&&typeof _authUser!=='undefined'&&_authUser&&typeof DB!=='undefined'&&DB&&DB.cur)};
 function safe(x){return String(x==null?'':x).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function notice(x){if(typeof note==='function')note(x);else alert(x)}
 async function loadMine(){
