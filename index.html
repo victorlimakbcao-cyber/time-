@@ -764,6 +764,45 @@ body:has(#cmAuthGate:not([hidden])){overflow:hidden!important}
   #cmAuthGate .mc-login-logo-img{width:min(285px,94%)}
 }
 
+
+/* login final: uma única rolagem e logo vetorial nítida */
+html:has(#cmAuthGate:not([hidden])),
+body:has(#cmAuthGate:not([hidden])){
+  overflow:hidden!important;
+  height:100%!important;
+}
+#cmAuthGate{
+  position:fixed!important;
+  inset:0!important;
+  width:100%!important;
+  height:100dvh!important;
+  min-height:100dvh!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  overscroll-behavior:contain!important;
+  -webkit-overflow-scrolling:touch;
+  align-items:flex-start!important;
+  justify-content:center!important;
+}
+#cmAuthGate .cm-auth-card{
+  overflow:visible!important;
+  max-height:none!important;
+  min-height:0!important;
+  height:auto!important;
+  margin:24px 0!important;
+}
+#cmAuthGate .mc-login-logo-svg{
+  display:block;
+  width:min(360px,96%);
+  height:auto;
+  margin:0 auto 4px;
+}
+#cmAuthGate .mc-login-logo-img{display:none!important}
+@media(max-width:520px){
+  #cmAuthGate .cm-auth-card{margin:10px 0!important}
+  #cmAuthGate .mc-login-logo-svg{width:min(315px,96%)}
+}
+
 </style>
 </head>
 <body>
@@ -775,7 +814,26 @@ body:has(#cmAuthGate:not([hidden])){overflow:hidden!important}
 <div id="cmAuthGate" role="dialog" aria-modal="true" aria-labelledby="cmAuthTitle">
   <div class="cm-auth-card">
     <div class="cm-auth-brand mc-auth-brand">
-      <img class="mc-login-logo-img" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" alt="Mister Cluber · Seu time, seu controle">
+      <svg class="mc-login-logo-svg" viewBox="0 0 1000 360" role="img" aria-label="Mister Cluber · Seu time, seu controle">
+  <g fill="none" stroke="#F0B400" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M46 46H330M46 46V248L100 300"/>
+    <path d="M505 36l18 32 36-20-14 38h44l-34 27 18 34-50-16-50 16 18-34-34-27h44l-14-38 36 20z"/>
+  </g>
+  <g fill="#fff">
+    <circle cx="104" cy="116" r="18"/>
+    <path d="M76 168c4-26 15-39 28-39s24 13 28 39z"/>
+    <circle cx="87" cy="205" r="6"/><rect x="104" y="199" width="68" height="12" rx="6"/>
+    <circle cx="87" cy="236" r="6"/><rect x="104" y="230" width="68" height="12" rx="6"/>
+    <circle cx="87" cy="267" r="6"/><rect x="104" y="261" width="68" height="12" rx="6"/>
+    <polygon points="396,56 404,77 426,77 408,90 415,112 396,99 377,112 384,90 366,77 388,77"/>
+    <polygon points="450,56 458,77 480,77 462,90 469,112 450,99 431,112 438,90 420,77 442,77"/>
+    <polygon points="600,56 608,77 630,77 612,90 619,112 600,99 581,112 588,90 570,77 592,77"/>
+    <polygon points="654,56 662,77 684,77 666,90 673,112 654,99 635,112 642,90 624,77 646,77"/>
+  </g>
+  <text x="225" y="210" fill="#fff" font-family="Barlow Condensed, Arial Narrow, sans-serif" font-size="156" font-style="italic" font-weight="800" letter-spacing="-5">MISTER</text>
+  <text x="230" y="327" fill="#F0B400" font-family="Barlow Condensed, Arial Narrow, sans-serif" font-size="150" font-style="italic" font-weight="800" letter-spacing="-5">CLUBER</text>
+  <text x="360" y="354" fill="#fff" font-family="Barlow, Arial, sans-serif" font-size="28" font-weight="600" letter-spacing="13">SEU TIME · SEU CONTROLE</text>
+</svg>
     </div>
     <h1 id="cmAuthTitle">Acesse sua conta</h1>
     <p id="cmAuthSub">Entre com seu e-mail e senha.</p>
