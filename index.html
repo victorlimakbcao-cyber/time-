@@ -840,9 +840,16 @@ body:has(#cmAuthGate:not([hidden])){
   #cmAuthGate .mc-login-logo-img{width:min(315px,100%)!important}
 }
 
+
+/* Front público isolado do painel enquanto a sessão e o vínculo são validados. */
+body:not([data-cm-front="ready"]) #app,
+body:not([data-cm-front="ready"]) #bottom{display:none!important}
+body[data-cm-front="ready"] #cmAuthGate,
+body[data-cm-front="ready"] #cmAccessGate{display:none!important}
+body[data-cm-front="loading"]{background:#071b13}
 </style>
 </head>
-<body>
+<body data-cm-front="loading">
 <div id="app"><aside id="side"></aside><main id="main"></main></div>
 <nav class="bottom" id="bottom" aria-label="Navegação principal"></nav>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -1068,8 +1075,12 @@ function cmResetSessionUi(){
  _authUser=null;_members=[];_clubMembers=[];_globalMembers=[];_accessRequests=[];_accessRequest=null;_actualRole='Dono';_permUser='';_userPermDraft=null;_userPermDirty=false;_sbLoaded=false;
  const g=$('#cmAuthGate');if(g)g.hidden=false;const ag=$('#cmAccessGate');if(ag)ag.hidden=true;cmAuthSetMode('signin')
 }
+function cmFrontState(state){
+ document.body.dataset.cmFront=state;
+ if(state!=='ready'){const d=document.getElementById('dlg');if(d&&d.open)d.close()}
+}
 function cmAuthShow(session){
- _authUser=session&&session.user?session.user:null;const g=$('#cmAuthGate');if(g)g.hidden=!!_authUser;
+ _authUser=session&&session.user?session.user:null;cmFrontState(_authUser?'loading':'public');const g=$('#cmAuthGate');if(g)g.hidden=!!_authUser;
  if(_authUser){_cacheKey=LEGACY_CACHE_KEY+':'+_authUser.id;rememberAccount(_authUser.email);try{if(_authUser.email_confirmed_at){localStorage.removeItem('cm_pending_signup_email');localStorage.removeItem('cm_signup_cooldown_until');_pendingSignupEmail='';_signupCooldownUntil=0}}catch(e){};cmAuthMsg('')}
  else cmAuthSetMode('signin')
 }
@@ -1182,13 +1193,13 @@ const cmSettingsPayload=(clubId,state)=>({club_id:clubId,fee_value:+state.feeVal
 function cmShowAccessGate(req){
  _accessRequest=req||null;const g=$('#cmAccessGate'),t=$('#cmAccessText'),title=$('#cmAccessTitle');if(!g)return;
  const st=req&&req.status||'pending',unassigned=st==='approved'&&!req?.assigned_club_id;
- if(title)title.textContent=unassigned?'Você está sem clube':st==='rejected'?'Acesso não liberado':'Aguardando liberação';
- if(t)t.textContent=unassigned
+ if(title)title.textContent=st==='error'?'Falha ao carregar':unassigned?'Você está sem clube':st==='rejected'?'Acesso não liberado':'Aguardando liberação';
+ if(t)t.textContent=st==='error'?'Não foi possível carregar seus dados. Atualize a página e tente novamente.':unassigned
    ?'Sua conta continua ativa, mas não está vinculada a nenhum clube. Você só poderá acessar o sistema quando o Dono vincular sua conta novamente a um clube.'
    :st==='rejected'
      ?'Seu pedido de acesso não foi aprovado. Fale com o Dono do sistema para revisar seu cadastro.'
      :'Seu e-mail foi confirmado. Agora seu cadastro está aguardando aprovação do Dono do sistema. Quando o acesso for liberado, entre novamente.';
- g.hidden=false
+ g.hidden=false;cmFrontState('blocked')
 }
 function cmHideAccessGate(){const g=$('#cmAccessGate');if(g)g.hidden=true}
 async function cmLoadOwnAccessRequest(){
@@ -1532,14 +1543,14 @@ async function loadSupabase(){
   await cmLoadAccessRequests();
   await cmLoadGlobalMembers();
   try{localStorage.setItem(_cacheKey,JSON.stringify(DB));if(_hadLegacy)localStorage.setItem('cm_v2:migrated_to',_authUser.id)}catch(e){}
-  render();
- }catch(e){console.warn('Supabase load falhou:',e);cmAuthMsg('Falha ao carregar o backend do clube. Atualize a página e tente novamente.','bad');_sbLoaded=false}
+  render();cmFrontState('ready');
+ }catch(e){console.warn('Supabase load falhou:',e);cmFrontState('blocked');cmShowAccessGate({status:'error'});cmAuthMsg('Falha ao carregar o backend do clube. Atualize a página e tente novamente.','bad');_sbLoaded=false}
 }
 async function cmAuthInit(){
  cmAuthSetMode('signin');renderRememberedAccounts();
- if(!sb){cmAuthMsg('Biblioteca do Supabase não carregou. Atualize a página.','bad');return}
+ if(!sb){cmFrontState('public');cmAuthMsg('Biblioteca do Supabase não carregou. Atualize a página.','bad');return}
  const {data:{session},error}=await sb.auth.getSession();
- if(error){cmAuthMsg(error.message||'Não foi possível verificar a sessão.','bad');return}
+ if(error){cmFrontState('public');cmAuthMsg(error.message||'Não foi possível verificar a sessão.','bad');return}
  cmAuthShow(session);
  if(session)await loadSupabase();else if(_pendingSignupEmail){const lab=$('#cmVerifyEmail');if(lab)lab.textContent=_pendingSignupEmail;cmAuthSetMode('verify');cmUpdateResendTimer()}
 }
@@ -1547,7 +1558,7 @@ if(sb){
  sb.auth.onAuthStateChange((event,session)=>{setTimeout(async()=>{
   if(event==='PASSWORD_RECOVERY'&&session){
    _authUser=session.user;_recoveryEmail=session.user.email||_recoveryEmail;_recoveryVerified=true;
-   const g=$('#cmAuthGate');if(g)g.hidden=false;const ag=$('#cmAccessGate');if(ag)ag.hidden=true;
+   cmFrontState('public');const g=$('#cmAuthGate');if(g)g.hidden=false;const ag=$('#cmAccessGate');if(ag)ag.hidden=true;
    const l=$('#cmRecoveryEmailLabel');if(l)l.textContent=_recoveryEmail;cmAuthSetMode('recovery');cmAuthMsg('E-mail validado. Cadastre sua nova senha.','ok');return
   }
   _sbLoaded=false;cmAuthShow(session);if(session)await loadSupabase()
