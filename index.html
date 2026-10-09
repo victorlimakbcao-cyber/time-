@@ -988,7 +988,7 @@ function cmAuthSetMode(mode){
   'recovery-sent':['Confira seu e-mail','Abra o link seguro enviado para continuar a recuperação.'],
   recovery:['Criar nova senha','Seu Gmail já foi validado. Defina sua nova senha.']
  };
- if(title)title.textContent=labels[_authMode][0];if(sub)sub.textContent=labels[_authMode][1];
+ if(title)title.textContent=labels[_authMode][0];if(sub)sub.textContent=labels[_authMode][1];const intro=document.getElementById('cmLoginIntro');if(intro)intro.hidden=_authMode!=='signin';
  if(_authMode==='signup')setTimeout(cmValidateSignup,0);if(_authMode==='verify')setTimeout(cmUpdateResendTimer,0);
  cmAuthMsg('');renderRememberedAccounts()
 }
