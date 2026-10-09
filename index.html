@@ -841,6 +841,24 @@ body:has(#cmAuthGate:not([hidden])){
 }
 
 
+/* Correção definitiva do isolamento: não permitir rolagem do app por trás do login. */
+html:has(body:not([data-cm-front="ready"])){min-height:100%;overflow-x:hidden}
+body:not([data-cm-front="ready"]){min-height:100dvh;overflow-x:hidden;background:#071b13}
+body:not([data-cm-front="ready"]) #app,
+body:not([data-cm-front="ready"]) #bottom,
+body:not([data-cm-front="ready"]) #dlg{display:none!important}
+body[data-cm-front="ready"] #app{display:flex!important}
+body:not([data-cm-front="ready"]) #cmAuthGate:not([hidden]),
+body:not([data-cm-front="ready"]) #cmAccessGate:not([hidden]){
+  z-index:99999!important;
+}
+body[data-cm-front="public"] #cmAuthGate{
+  position:relative!important;inset:auto!important;
+  min-height:100dvh!important;height:auto!important;
+  width:100%!important;overflow:visible!important;
+}
+body[data-cm-front="blocked"] #cmAccessGate{position:fixed!important;inset:0!important}
+
 /* Front público isolado do painel enquanto a sessão e o vínculo são validados. */
 body:not([data-cm-front="ready"]) #app,
 body:not([data-cm-front="ready"]) #bottom{display:none!important}
