@@ -674,6 +674,83 @@ img.sh.shk{opacity:1}
 .cm-fixed-access{display:grid;gap:4px;padding:10px 0}.cm-fixed-access label{font-size:11px;opacity:.7}.cm-fixed-value{font-weight:800;padding:7px 9px;border:1px solid rgba(255,255,255,.18);border-radius:8px;background:rgba(255,255,255,.08)}.cm-fixed-access small{opacity:.62;font-size:10px;margin-top:2px}
 .cm-club-real-logo{width:42px;height:48px;object-fit:contain;flex:none;border-radius:8px;background:var(--surface);padding:2px;border:1px solid var(--line)}
 .ro-mode{display:none!important}
+
+/* login premium Mister Cluber */
+#cmAuthGate{
+  background:
+    radial-gradient(circle at 12% 14%,rgba(255,218,90,.23) 0 3px,transparent 4px),
+    radial-gradient(circle at 88% 17%,rgba(255,218,90,.20) 0 3px,transparent 4px),
+    radial-gradient(ellipse at 50% 105%,rgba(36,127,77,.78),transparent 46%),
+    linear-gradient(180deg,rgba(2,24,16,.12),rgba(3,27,18,.72)),
+    linear-gradient(145deg,#071b13,#0d3a29 58%,#092319);
+}
+#cmAuthGate:before{
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:.48;
+  background:
+    radial-gradient(ellipse at 6% 35%,rgba(255,204,72,.40),transparent 15%),
+    radial-gradient(ellipse at 94% 36%,rgba(255,204,72,.40),transparent 15%),
+    linear-gradient(180deg,transparent 68%,rgba(10,62,35,.42) 69% 100%);
+}
+#cmAuthGate:after{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:28%;pointer-events:none;opacity:.36;
+  background:repeating-linear-gradient(100deg,rgba(255,255,255,.035) 0 1px,transparent 1px 9px);
+}
+#cmAuthGate .cm-auth-card{
+  position:relative;z-index:1;
+  width:min(440px,94vw);
+  background:linear-gradient(180deg,rgba(3,36,25,.96),rgba(2,28,20,.98));
+  color:#f6fbf8;border:1px solid rgba(170,209,190,.34);
+  box-shadow:0 28px 80px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.04);
+  border-radius:18px;padding:24px;
+}
+#cmAuthGate .mc-auth-brand{display:block;margin:0 0 10px}
+#cmAuthGate .mc-login-logo{width:min(330px,92%);margin:0 auto 8px}
+#cmAuthGate .mc-login-logo svg{display:block;width:100%;height:auto}
+#cmAuthGate .mc-login-intro{text-align:center;margin:0 0 18px}
+#cmAuthGate .mc-login-intro h2{margin:0 0 5px;font:700 16px/1.25 var(--fh);color:#fff}
+#cmAuthGate .mc-login-intro p{margin:0;color:#aebfb6;font-size:12px;line-height:1.45}
+#cmAuthGate .cm-auth-card h1{color:#fff;font-size:24px;margin:2px 0 4px}
+#cmAuthGate .cm-auth-card>p,#cmAuthGate .cm-auth-help{color:#aebfb6}
+#cmAuthGate .cm-auth-card label{color:#f0f6f2;font-weight:600}
+#cmAuthGate .cm-auth-card input,
+#cmAuthGate .cm-auth-card select{
+  background:rgba(1,20,14,.58);color:#f6fbf8;
+  border:1px solid rgba(166,201,184,.34);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.02);
+}
+#cmAuthGate .cm-auth-card input::placeholder{color:#83978c}
+#cmAuthGate .cm-pass-eye{color:#a9bbb2}
+#cmAuthGate .cm-auth-link{color:#f0b400}
+#cmAuthGate .cm-auth-sep{color:#8fa197}
+#cmAuthGate .cm-auth-sep:before,#cmAuthGate .cm-auth-sep:after{background:rgba(189,211,200,.24)}
+#cmAuthGate #cmAuthLogin,
+#cmAuthGate .cm-auth-submit{
+  background:linear-gradient(180deg,#ffd52d,#e6ad00)!important;
+  border-color:#ffd52d!important;color:#172015!important;
+  font-weight:800;box-shadow:0 8px 24px rgba(230,173,0,.22)
+}
+#cmAuthGate #cmAuthToSignup{
+  background:transparent!important;color:#f7faf8!important;
+  border-color:rgba(203,222,213,.45)!important
+}
+#cmAuthGate #cmAuthToSignup:hover{background:rgba(255,255,255,.05)!important}
+#cmAuthGate .cm-recent-title{color:#d9e5df}
+#cmAuthGate .cm-recent-btn{
+  background:rgba(255,255,255,.04);color:#f6fbf8;border-color:rgba(193,215,204,.2)
+}
+#cmAuthGate .cm-recent-btn:hover{background:rgba(255,255,255,.08)}
+#cmAuthGate .cm-recent-dot{background:#f0b400;color:#122017}
+#cmAuthGate .cm-access-card{
+  background:rgba(255,255,255,.04)!important;color:#f6fbf8!important;border-color:rgba(193,215,204,.22)!important
+}
+#cmAuthGate .cm-access-card p{color:#aebfb6}
+#cmAuthGate .cm-auth-msg.bad{color:#ff8c80}.cm-auth-msg.ok{color:#72d49a}
+@media(max-width:520px){
+  #cmAuthGate .cm-auth-card{padding:18px 16px}
+  #cmAuthGate .mc-login-logo{width:min(290px,94%)}
+  #cmAuthGate .mc-login-intro{margin-bottom:14px}
+}
+
 </style>
 </head>
 <body>
@@ -684,7 +761,28 @@ img.sh.shk{opacity:1}
 
 <div id="cmAuthGate" role="dialog" aria-modal="true" aria-labelledby="cmAuthTitle">
   <div class="cm-auth-card">
-    <div class="cm-auth-brand mc-auth-brand"><span class="mc-brand-mark">MC</span><span class="mc-wordmark"><b>MISTER</b><strong>CLUBER</strong><small>SEU TIME · SEU CONTROLE</small></span></div>
+    <div class="cm-auth-brand mc-auth-brand">
+  <div class="mc-login-logo" aria-label="Mister Cluber">
+    <svg viewBox="0 0 520 180" role="img" aria-hidden="true">
+      <g fill="none" stroke="#f0b400" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 20h150M18 20v118l48 32"/>
+        <path d="M260 24l16-22 16 22 24-10-8 26 20 14-26 2-10 24-16-22-16 22-10-24-26-2 20-14-8-26z"/>
+      </g>
+      <g fill="#fff">
+        <circle cx="52" cy="58" r="10"/><path d="M35 85c0-13 8-20 17-20s17 7 17 20z"/>
+        <circle cx="42" cy="112" r="5"/><rect x="55" y="107" width="42" height="9" rx="4.5"/>
+        <circle cx="42" cy="137" r="5"/><rect x="55" y="132" width="42" height="9" rx="4.5"/>
+      </g>
+      <text x="118" y="98" fill="#fff" font-size="72" font-weight="900" font-style="italic" font-family="Arial,Helvetica,sans-serif">MISTER</text>
+      <text x="170" y="160" fill="#f0b400" font-size="76" font-weight="900" font-style="italic" font-family="Arial,Helvetica,sans-serif">CLUBER</text>
+      <text x="180" y="178" fill="#fff" font-size="13" letter-spacing="8" font-family="Arial,Helvetica,sans-serif">SEU TIME · SEU CONTROLE</text>
+    </svg>
+  </div>
+</div>
+    <div id="cmLoginIntro" class="mc-login-intro">
+      <h2>Gerencie seu clube como um verdadeiro treinador</h2>
+      <p>Monte seu elenco, acompanhe partidas, estatísticas e mantenha tudo sob controle.</p>
+    </div>
     <h1 id="cmAuthTitle">Acesse sua conta</h1>
     <p id="cmAuthSub">Entre com seu e-mail e senha.</p>
 
