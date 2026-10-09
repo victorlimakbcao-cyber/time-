@@ -60,9 +60,8 @@ async function drawSecondClubApprovals(){
  var slot=document.getElementById('cmSecondApprovals');
  if(!slot||!isReady()||!isActualAdmin())return;
  try{
-  var q=sb.from('cm_multi_club_requests').select('id,user_id,club_id,status,requested_at').eq('status','pending').order('requested_at',{ascending:true});
-  if(!(isSystemOwner()&&S&&S.club&&S.club.demo))q=q.eq('club_id',DB.cur);
-  var r=await q;if(r.error)throw r.error;
+  var r=await sb.rpc('cm_second_club_pending');if(r.error)throw r.error;
+  if(!(isSystemOwner()&&S&&S.club&&S.club.demo))r.data=(r.data||[]).filter(function(x){return x.club_id===DB.cur});
   if(!slot.isConnected)return;
   var rows=r.data||[];
   if(!rows.length){slot.innerHTML='<h3>Solicitações de outros clubes</h3><p class="mute">Nenhuma solicitação pendente.</p>';return}
