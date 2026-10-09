@@ -751,6 +751,45 @@ img.sh.shk{opacity:1}
   #cmAuthGate .mc-login-intro{margin-bottom:14px}
 }
 
+
+/* login: logo oficial + uma única rolagem */
+#cmAuthGate{
+  display:flex!important;
+  align-items:flex-start!important;
+  justify-content:center!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  min-height:100dvh;
+  box-sizing:border-box;
+  padding:24px 20px!important;
+}
+#cmAuthGate[hidden]{display:none!important}
+#cmAuthGate .cm-auth-card{
+  flex:0 0 auto;
+  margin:auto 0!important;
+  max-height:none!important;
+  height:auto!important;
+  overflow:visible!important;
+  overscroll-behavior:auto!important;
+  scrollbar-gutter:auto!important;
+}
+#cmAuthGate .mc-auth-brand{
+  display:flex!important;
+  justify-content:center;
+  margin:0 0 8px!important;
+}
+#cmAuthGate .mc-login-logo-img{
+  display:block;
+  width:min(330px,92%);
+  height:auto;
+  object-fit:contain;
+}
+@media(max-width:520px){
+  #cmAuthGate{padding:14px 10px!important}
+  #cmAuthGate .cm-auth-card{margin:0!important}
+  #cmAuthGate .mc-login-logo-img{width:min(285px,94%)}
+}
+
 </style>
 </head>
 <body>
@@ -762,23 +801,8 @@ img.sh.shk{opacity:1}
 <div id="cmAuthGate" role="dialog" aria-modal="true" aria-labelledby="cmAuthTitle">
   <div class="cm-auth-card">
     <div class="cm-auth-brand mc-auth-brand">
-  <div class="mc-login-logo" aria-label="Mister Cluber">
-    <svg viewBox="0 0 520 180" role="img" aria-hidden="true">
-      <g fill="none" stroke="#f0b400" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M18 20h150M18 20v118l48 32"/>
-        <path d="M260 24l16-22 16 22 24-10-8 26 20 14-26 2-10 24-16-22-16 22-10-24-26-2 20-14-8-26z"/>
-      </g>
-      <g fill="#fff">
-        <circle cx="52" cy="58" r="10"/><path d="M35 85c0-13 8-20 17-20s17 7 17 20z"/>
-        <circle cx="42" cy="112" r="5"/><rect x="55" y="107" width="42" height="9" rx="4.5"/>
-        <circle cx="42" cy="137" r="5"/><rect x="55" y="132" width="42" height="9" rx="4.5"/>
-      </g>
-      <text x="118" y="98" fill="#fff" font-size="72" font-weight="900" font-style="italic" font-family="Arial,Helvetica,sans-serif">MISTER</text>
-      <text x="170" y="160" fill="#f0b400" font-size="76" font-weight="900" font-style="italic" font-family="Arial,Helvetica,sans-serif">CLUBER</text>
-      <text x="180" y="178" fill="#fff" font-size="13" letter-spacing="8" font-family="Arial,Helvetica,sans-serif">SEU TIME · SEU CONTROLE</text>
-    </svg>
-  </div>
-</div>
+      <img class="mc-login-logo-img" src="/assets/mister-cluber-login.webp?v=20261009" alt="Mister Cluber · Seu time, seu controle">
+    </div>
     <div id="cmLoginIntro" class="mc-login-intro">
       <h2>Gerencie seu clube como um verdadeiro treinador</h2>
       <p>Monte seu elenco, acompanhe partidas, estatísticas e mantenha tudo sob controle.</p>
