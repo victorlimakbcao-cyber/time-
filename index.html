@@ -1830,7 +1830,7 @@ function render(){if(!can(view))view='dashboard';shell();const V={dashboard,part
  const ro='';
  $('#main').innerHTML=sim+ro+V();post()}
 const head=(t,extra='')=>`<div class="top"><h1>${t}</h1><div class="row">${extra}</div></div>`;
-const tabs=(list,cur,fn)=>`<div class="tabs">${list.map(([k,l])=>`<button class="${cur===k?'on':''}" onclick="${fn}('${k}')">${l}</button>`).join('')}</div>`;
+const tabs=(list,cur,fn)=>`<div class="tabs">${list.map(([k,l])=>`<button type="button" class="${cur===k?'on':''}" aria-pressed="${cur===k?'true':'false'}" onclick="${fn}('${k}')">${l}</button>`).join('')}</div>`;
 function menu(){return head('Menu')+`<div class="mn-g">${NAV.filter(n=>!MOB.includes(n[0])&&can(n[0])).map(([k,l])=>`<button type="button" class="mn-t" onclick="go('${k}')">${ic(k)}<span>${l}</span></button>`).join('')}</div><div class="card mn-sw" style="margin-top:12px;background:var(--brand);color:#fff">${switchers()}${cmAccountHtml()}</div>`}
 
 /* dashboard */
@@ -2343,7 +2343,7 @@ function perfilJog(){
  const p=P(ctx.id);if(!p){sub='';return view==='elenco'?elenco():estatisticas()}
  const ms=rkMs(),s=pstats(p.id,ms),EV=pEvents(p.id,ms),N=pNotas(p.id,ms),R=pRows(p.id,ms),cpM=can('partidas');
  const by=k=>EV.filter(x=>x.k===k),gl=by('gol'),as=by('ast'),am=by('amarelo'),vm=by('vermelho'),ls=by('lesao'),vals=N.map(x=>x.f),tab=fl.pfTab||'resumo';
- const mk=(l,v,t,sb='')=>`<div class="card kpi cursor" onclick="setPf('${t}')" onkeydown="if(event.key==='Enter')this.click()" role="button" tabindex="0"><small>${l}</small><b>${v}</b>${sb?`<small class="sub">${sb}</small>`:''}</div>`;
+ const mk=(l,v,t,sb='')=>`<div class="card kpi cursor" onclick="setPf('${t}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" role="button" tabindex="0"><small>${l}</small><b>${v}</b>${sb?`<small class="sub">${sb}</small>`:''}</div>`;
  const nc=l=>`<div class="card kpi"><small>${l}</small><b class="mute" style="font-size:18px">—</b><small class="sub">Estatística ainda não registrada</small></div>`;
  const mrow=(m,sc,mid,right)=>`<div class="row ${cpM?'cursor':''}" ${cpM?`onclick="goM(${m.id})"`:''} style="padding:9px 0;border-bottom:1px solid var(--line);align-items:flex-start;flex-wrap:nowrap"><span style="width:28px;flex:none">${oppShield(m.opp,24,28)}</span><div class="sp" style="min-width:0"><b>vs ${esc(m.opp)}</b><div class="mute" style="font-size:13px">${fdf(m.date)} · ${esc(compLabel(m))} · ${mando(m)} · resultado ${sc.gf} x ${sc.ga}</div>${mid||''}</div><div style="text-align:right;flex:none">${right||''}</div></div>`;
  const grp=l=>{const g=new Map();l.forEach(x=>{if(!g.has(x.m.id))g.set(x.m.id,{m:x.m,sc:x.sc,ev:[]});g.get(x.m.id).ev.push(x.e)});return[...g.values()].reverse()};
