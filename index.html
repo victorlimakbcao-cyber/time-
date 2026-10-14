@@ -2087,6 +2087,8 @@ function permissionActionFor(el){
 function applyPermissionUI(){
  const m=document.getElementById('main');if(!m||isAdminRole(DB.role))return;
  m.querySelectorAll('button,input,select,textarea,summary').forEach(el=>{
+  const navHandlers=[el.getAttribute('onclick'),el.getAttribute('onchange')].filter(Boolean).join(' ');
+  if(el.id==='pf-stat-select'||/setPf\s*\(/.test(navHandlers)){el.classList.remove('ro-locked');el.removeAttribute('aria-disabled');delete el.dataset.permLock;if(/^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName))el.disabled=false;return}
   const a=permissionActionFor(el);if(!a||canDo(view,a))return;
   el.classList.add('ro-locked');el.setAttribute('aria-disabled','true');el.dataset.permLock=a;
   if(/^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName))el.disabled=true
@@ -2101,7 +2103,7 @@ function post(){const m=document.getElementById('main');if(!m)return;
   t.classList.add('rt');const w=t.closest('.wrap');if(w)w.classList.add('rt-w')});
  applyPermissionUI()
 }
-document.addEventListener('click',e=>{const lk=e.target.closest&&e.target.closest('[data-perm-lock]');if(lk){e.preventDefault();e.stopImmediatePropagation();note('Sua função está em modo somente visualização para esta ação.');return}document.querySelectorAll('details.mo[open]').forEach(d=>{if(!d.contains(e.target))d.open=false})},true);
+document.addEventListener('click',e=>{const lk=e.target.closest&&e.target.closest('[data-perm-lock]');if(lk){const navHandlers=[lk.getAttribute('onclick'),lk.getAttribute('onchange')].filter(Boolean).join(' ');if(lk.id==='pf-stat-select'||/setPf\s*\(/.test(navHandlers)){lk.classList.remove('ro-locked');lk.removeAttribute('aria-disabled');delete lk.dataset.permLock;return}e.preventDefault();e.stopImmediatePropagation();note('Sua função está em modo somente visualização para esta ação.');return}document.querySelectorAll('details.mo[open]').forEach(d=>{if(!d.contains(e.target))d.open=false})},true);
 document.addEventListener('focusin',e=>{const t=e.target;if(t.closest&&t.closest('dialog')&&/^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName))setTimeout(()=>{try{t.scrollIntoView({block:'center',behavior:'smooth'})}catch(_){}},300)});
 if(window.visualViewport){const sv=()=>document.documentElement.style.setProperty('--vvh',visualViewport.height+'px');visualViewport.addEventListener('resize',sv);sv()}
 {const mq=matchMedia('(max-width:640px)');const ch=()=>{if(typeof render==='function')render()};mq.addEventListener?mq.addEventListener('change',ch):mq.addListener(ch)}
