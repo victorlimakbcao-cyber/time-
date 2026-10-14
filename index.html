@@ -2075,6 +2075,8 @@ function permPanel(){
 }
 function permissionActionFor(el){
  if(!el)return'';const h=[el.getAttribute('onclick'),el.getAttribute('onchange'),el.getAttribute('oninput')].filter(Boolean).join(' '),t=(el.textContent||el.value||'').trim().toLowerCase();
+ /* Navegação entre abas/categorias do perfil é leitura, não edição. */
+ if(el.id==='pf-stat-select'||/\bsetPf\s*\(/.test(h))return'';
  if(!h&&!(el.tagName==='BUTTON'||el.type==='file'))return'';
  if(/del|delete|remove|exclu|askReset|cancelTx/i.test(h)||/excluir|remover|apagar|restaurar dados/.test(t))return'delete';
  if(/add|new|novo|nova|create|criar|lan[cç]ar|upload|cadastrar/i.test(h)||/novo|nova|adicionar|criar|lançar|cadastrar|upload/.test(t))return'create';
