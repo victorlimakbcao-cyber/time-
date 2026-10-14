@@ -2415,13 +2415,14 @@ const RK=[['g','Artilharia'],['a','Assistências'],['part','Participações em g
 let rk='g';
 function estatisticas(){
  if(sub==='jog')return perfilJog();
- const vis=RK.filter(r=>!S.hiddenRk.includes(r[0]));
+ /* Usuários somente leitura (incluindo Jogador) podem consultar todas as categorias; hiddenRk afeta apenas a configuração administrativa dos rankings. */
+ const vis=canDo('estatisticas','edit')?RK.filter(r=>!S.hiddenRk.includes(r[0])):RK;
  if(!vis.find(r=>r[0]===rk))rk=vis[0]?vis[0][0]:'g';
  const ms=rkMs();
  const rows=S.players.map(p=>({p,s:pstats(p.id,ms)})).filter(x=>x.s.j>0||x.s[rk]>0).sort((a,b)=>b.s[rk]-a.s[rk]||b.s.j-a.s.j);
  const mx=Math.max(1,...rows.map(r=>r.s[rk]));
  const U={g:['gol','gols'],a:['assistência','assistências'],part:['participação','participações'],am:['cartão','cartões'],vm:['cartão','cartões'],j:['jogo','jogos'],min:['min','min'],t:['titularidade','titularidades'],v:['vitória','vitórias'],mvp:['MVP','MVP'],nota:['','']};
- const GR=[['ataque','Ataque',['g','a','part']],['disc','Disciplina',['am','vm']],['desemp','Desempenho',['j','min','t','v','mvp','nota']]].filter(g=>g[2].some(k=>!S.hiddenRk.includes(k))),cg=(GR.find(g=>g[2].includes(rk))||GR[0]||[,,[]]);
+ const GR=[['ataque','Ataque',['g','a','part']],['disc','Disciplina',['am','vm']],['desemp','Desempenho',['j','min','t','v','mvp','nota']]].filter(g=>g[2].some(k=>vis.some(r=>r[0]===k))),cg=(GR.find(g=>g[2].includes(rk))||GR[0]||[,,[]]);
  const val=r=>rk==='nota'?r.s.nota.toFixed(1).replace('.',','):r.s[rk],un=r=>U[rk][r.s[rk]===1?0:1],lk=r=>`onclick="goJog(${r.p.id})" onkeydown="if(event.key==='Enter')this.click()" role="button" tabindex="0"`;
  const top3=rows.slice(0,3),rest=rows.slice(3);
  return head('Estatísticas','<button class="btn ghost sm" onclick="rkEdit()">⚙ Configurar rankings</button>')+`<div class="row" style="margin-bottom:6px">${tabs(GR.map(g=>[g[0],g[1]]),cg[0],'setRkG').replace('class="tabs"','class="tabs" style="margin:0"')}</div><div class="row" style="margin-bottom:10px">${tabs(vis.filter(r=>cg[2].includes(r[0])),rk,'setRk').replace('class="tabs"','class="tabs" style="margin:0"')}</div>${rkFilters()}
