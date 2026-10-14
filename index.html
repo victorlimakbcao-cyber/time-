@@ -1840,7 +1840,7 @@ function dashboard(){
  const SCM=new Map(D.map(m=>[m.id,score(m)])),scr=m=>SCM.get(m.id);
  /* filtro da Campanha por temporada: usa o ano das partidas finalizadas; não confunde temporada com competição */
  const campYears=[...new Set(S.matches.filter(m=>m.date).map(m=>m.date.slice(0,4)))].sort().reverse();
- const campYear=campYears.includes(String(fl.campY||''))?String(fl.campY):TODAY.slice(0,4);
+ const campYear=campYears.includes(String(fl.campY||''))?String(fl.campY):(campYears.includes(TODAY.slice(0,4))?TODAY.slice(0,4):(campYears[0]||TODAY.slice(0,4)));
  const DC=D.filter(m=>m.date&&m.date.slice(0,4)===campYear);
  const campO=[...new Set(S.matches.map(m=>m.comp).filter(Boolean))],campSel='';
  const mo=TODAY.slice(0,7);
