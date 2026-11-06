@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: pipa-combate-v4-bonto
+    runtime: node
+    plan: free
+    region: virginia
+    rootDir: pipa-combate-v4
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: LIVE_ADMIN_TOKEN
+        sync: false
