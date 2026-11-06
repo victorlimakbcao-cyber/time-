@@ -1,0 +1,37 @@
+const express=require("express"),http=require("http"),{Server}=require("socket.io");
+const app=express(),server=http.createServer(app),io=new Server(server);
+const PORT=process.env.PORT||3000,TOKEN=process.env.LIVE_ADMIN_TOKEN||"troque-este-token";
+app.use(express.json({limit:"100kb"})); const rooms=new Map();
+const colors=["#ff4d6d","#4dabf7","#51cf66","#ffd43b","#cc5de8","#20c997","#ff922b","#845ef7"];
+function room(c){c=String(c||"PIPA").trim().toUpperCase().slice(0,10);if(!rooms.has(c))rooms.set(c,{code:c,started:false,timer:180,wind:0,players:new Map(),startedAt:0});return rooms.get(c)}
+function state(r){return {code:r.code,started:r.started,timer:r.timer,wind:r.wind,players:[...r.players.values()].map(({lastMove,lastCut,...p})=>p)}}
+function send(r){io.to(r.code).emit("game:state",state(r))}
+io.on("connection",s=>{
+ s.on("room:join",({roomCode,name,spectator=false}={})=>{
+  const r=room(roomCode); if(s.data.room){const old=rooms.get(s.data.room);if(old){old.players.delete(s.id);send(old)}s.leave(s.data.room)}
+  if(!spectator&&r.players.size>=8)return s.emit("error:msg","Sala cheia. Máximo de 8 jogadores.");
+  s.join(r.code);s.data.room=r.code;s.data.spectator=!!spectator;
+  if(!spectator){const i=r.players.size;r.players.set(s.id,{id:s.id,name:String(name||"Jogador").slice(0,18),x:.5,y:.25+i*.06,score:0,line:100,alive:true,color:colors[i%colors.length],lastMove:0,lastCut:0})}
+  s.emit("room:joined",{code:r.code,spectator,state:state(r)});send(r)
+ });
+ s.on("room:start",()=>{const r=rooms.get(s.data.room);if(!r)return;r.started=true;r.startedAt=Date.now();r.timer=180;r.players.forEach(p=>{p.alive=true;p.line=100;p.score=0});io.to(r.code).emit("game:start");send(r)});
+ s.on("player:move",({dx=0,dy=0}={})=>{const r=rooms.get(s.data.room),p=r&&r.players.get(s.id);if(!p||!p.alive)return;const n=Date.now();if(n-p.lastMove<45)return;p.lastMove=n;p.x=Math.max(.08,Math.min(.92,p.x+Number(dx)*.018));p.y=Math.max(.08,Math.min(.82,p.y+Number(dy)*.018));send(r)});
+ s.on("player:cut",()=>{const r=rooms.get(s.data.room),a=r&&r.players.get(s.id);if(!r||!a||!a.alive||!r.started)return;const n=Date.now();if(n-a.lastCut<700)return;a.lastCut=n;let t=null,b=999;for(const p of r.players.values())if(p.id!==a.id&&p.alive){const d=Math.hypot(p.x-a.x,p.y-a.y);if(d<b){b=d;t=p}}if(t&&b<.22){t.line=Math.max(0,t.line-25);io.to(r.code).emit("cut:effect",{attacker:a.id,target:t.id});if(t.line<=0){t.alive=false;a.score++;io.to(r.code).emit("player:eliminated",{target:t.id,attacker:a.id})}send(r)}else s.emit("cut:miss")});
+ s.on("disconnect",()=>{const r=rooms.get(s.data.room);if(!r)return;r.players.delete(s.id);if(r.players.size)send(r);else rooms.delete(r.code)})
+});
+setInterval(()=>{for(const r of rooms.values())if(r.started){r.timer=Math.max(0,180-Math.floor((Date.now()-r.startedAt)/1000));r.wind=Math.sin(Date.now()/900)*.8;if(!r.timer){r.started=false;io.to(r.code).emit("game:end")}send(r)}},250);
+app.get("/health",(q,z)=>z.json({ok:true,version:"4.0.0"}));
+app.post("/api/live-event",(q,z)=>{if(q.headers["x-live-token"]!==TOKEN)return z.status(401).json({error:"Não autorizado"});const r=room(q.body.roomCode),e={type:q.body.type||"comment",name:q.body.name||"LIVE",value:q.body.value||""};io.to(r.code).emit("live:event",e);z.json({ok:true})});
+const page=`<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><title>Pipa Combate LIVE</title><style>
+*{box-sizing:border-box}body{margin:0;background:#111;color:#fff;font:16px Arial}.wrap{max-width:560px;margin:auto;padding:10px}.card{background:#191919;border:1px solid #333;border-radius:18px;padding:14px}h1{text-align:center}input,button{width:100%;padding:13px;margin:5px 0;border:0;border-radius:12px;font-size:16px}input{background:#292929;color:#fff}.primary{font-weight:bold}.danger{background:#ff4d6d;color:#fff}.hud{display:flex;justify-content:space-between;font-size:12px;margin-bottom:7px}#game{display:none}#arena{aspect-ratio:9/16;border-radius:18px;overflow:hidden;background:linear-gradient(#72c9ff 0%,#bfe9ff 62%,#65bd64 62%)}canvas{width:100%;height:100%}.controls{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}.cut{grid-column:1/4;background:#ff4d6d;color:white}.note{text-align:center;color:#aaa;font-size:12px}</style>
+<div class="wrap"><div id="lobby" class="card"><h1>🪁 PIPA COMBATE</h1><p class="note">Multiplayer para LIVE</p><input id="name" placeholder="Seu nome" maxlength="18"><input id="room" value="PIPA" placeholder="Código da sala"><button onclick="join(false)">ENTRAR COMO JOGADOR</button><button onclick="join(true)">ENTRAR COMO ESPECTADOR</button></div>
+<div id="game" class="card"><div class="hud"><span>🪁 <b id="rl"></b></span><span>⏱️ <b id="tm">180</b></span><span>🌬️ <b id="wi">0</b></span></div><div id="arena"><canvas id="cv" width="450" height="800"></canvas></div><div class="controls"><button onclick="mv(-1,0)">◀</button><button onclick="mv(0,-1)">▲</button><button onclick="mv(1,0)">▶</button><button onclick="mv(0,1)">▼</button><button class="cut" onclick="cut()">✂️ CORTAR LINHA</button></div><button id="start" onclick="start()">▶️ INICIAR PARTIDA</button><div id="rank"></div><p id="msg" class="note">Aguardando...</p></div></div>
+<script src="/socket.io/socket.io.js"></script><script>
+const so=io(),c=document.getElementById("cv"),x=c.getContext("2d");let st={players:[]},spec=false;
+function join(s){spec=s;so.emit("room:join",{roomCode:document.getElementById("room").value||"PIPA",name:document.getElementById("name").value||"Jogador",spectator:s})}
+so.on("room:joined",d=>{lobby.style.display="none";game.style.display="block";rl.textContent=d.code;st=d.state;draw()});so.on("game:state",s=>{st=s;draw()});so.on("game:start",()=>msg("🔥 PARTIDA INICIADA!"));so.on("game:end",()=>msg("🏁 FIM!"));so.on("cut:miss",()=>msg("❌ Corte não alcançou ninguém"));so.on("cut:effect",()=>msg("✂️ CORTE!"));so.on("player:eliminated",()=>msg("💥 Pipa cortada!"));so.on("live:event",e=>{if(String(e.value).toUpperCase().includes("CORTE"))cut();else msg("💬 "+e.name+": "+e.value)});so.on("error:msg",alert);
+function start(){if(!spec)so.emit("room:start")}function mv(a,b){if(!spec)so.emit("player:move",{dx:a,dy:b})}function cut(){if(!spec)so.emit("player:cut")}document.onkeydown=e=>{if(e.key==="ArrowLeft")mv(-1,0);if(e.key==="ArrowRight")mv(1,0);if(e.key==="ArrowUp")mv(0,-1);if(e.key==="ArrowDown")mv(0,1);if(e.code==="Space")cut()};
+function msg(t){document.getElementById("msg").textContent=t}
+function draw(){x.clearRect(0,0,450,800);for(let p of st.players){let X=p.x*450,Y=p.y*800;x.beginPath();x.moveTo(X,Y+28);x.lineTo(225,790);x.strokeStyle=p.color+"99";x.stroke()}for(let p of st.players){let X=p.x*450,Y=p.y*800;x.save();x.translate(X,Y);x.beginPath();x.moveTo(0,-28);x.lineTo(30,0);x.lineTo(0,28);x.lineTo(-30,0);x.closePath();x.fillStyle=p.color;x.fill();x.strokeStyle="#222";x.lineWidth=3;x.stroke();x.restore();x.fillStyle="#111";x.textAlign="center";x.font="bold 13px Arial";x.fillText(p.name,X,Y-38);x.font="11px Arial";x.fillText("🧵 "+Math.round(p.line)+"% ⭐ "+p.score,X,Y+48)}tm.textContent=st.timer??180;wi.textContent=(st.wind??0).toFixed(1);rank.innerHTML=[...st.players].sort((a,b)=>b.score-a.score).map((p,i)=>(i+1)+". "+p.name+" — "+p.score+" pts "+(p.alive?"🟢":"💥")).join("<br>")}
+</script>`;
+app.get("/",(q,z)=>z.send(page));server.listen(PORT,"0.0.0.0",()=>console.log("Pipa Combate on "+PORT));
