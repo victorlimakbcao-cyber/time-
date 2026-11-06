@@ -1,0 +1,12 @@
+PIPA COMBATE V4 — Bonto
+
+No seu aplicativo Node.js do Bonto:
+1. Abra index.js e substitua todo o conteúdo pelo index.js deste pacote.
+2. Abra package.json e substitua todo o conteúdo pelo package.json deste pacote.
+3. Salve.
+4. Aguarde o Bonto instalar express e socket.io e iniciar.
+5. Abra a URL pública.
+
+A versão inclui salas multiplayer, espectadores, linhas individuais, corte, pontuação, ranking, timer e endpoint de eventos LIVE.
+
+Variável opcional: LIVE_ADMIN_TOKEN
